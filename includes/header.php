@@ -23,27 +23,20 @@ $categories = $pdo->query('SELECT * FROM categories ORDER BY id')->fetchAll();
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><?= $pageTitle ?? SITE_NAME ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="/bainhom/assets/css/style.css">
 </head>
 
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased overflow-x-hidden">
 
-
-
-  <!-- TOP ANNOUNCEMENT BAR -->
   <div class="announcement-bar">
     🔥 CHÀO MỪNG ĐẾN VỚI TECHZONE – MIỄN PHÍ VẬN CHUYỂN CHO ĐƠN HÀNG TỪ <?= formatVND(FREE_SHIP_MIN) ?>!
   </div>
 
-  <!-- MAIN HEADER -->
   <header class="main-header">
     <div class="header-inner">
 
-      <!-- Logo -->
       <a href="/bainhom/index.php" class="logo-brand">
         <span class="logo-icon"><i data-lucide="cpu"></i></span>
         <div>
@@ -52,49 +45,46 @@ $categories = $pdo->query('SELECT * FROM categories ORDER BY id')->fetchAll();
         </div>
       </a>
 
-      <!-- Search -->
       <form action="/bainhom/index.php" method="GET" class="header-search">
         <i data-lucide="search" class="search-icon"></i>
-        <input type="text" name="q" value="<?= clean($_GET['q'] ?? '') ?>"
-          placeholder="Tìm kiếm sản phẩm, thương hiệu..." />
+        <input type="text" name="q" value="<?= clean($_GET['q'] ?? '') ?>" placeholder="Tìm kiếm sản phẩm, thương hiệu..." />
       </form>
 
-      <!-- Nav -->
       <nav class="main-nav">
-        <a href="/bainhom/index.php"
-          class="nav-link <?= (basename($_SERVER['PHP_SELF']) === 'index.php' && !isset($_GET['page'])) ? 'active' : '' ?>">
+        <a href="/bainhom/index.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) === 'index.php' && !isset($_GET['page'])) ? 'active' : '' ?>">
           <i data-lucide="shopping-bag"></i><span>Cửa Hàng</span>
         </a>
-        <a href="/bainhom/views/cart.php"
-          class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'views/cart.php' ? 'active' : '' ?>">
-          <i data-lucide="shopping-cart"></i><span>Giỏ Hàng</span>
-          <?php if ($cartCount > 0): ?>
-            <span class="cart-badge"><?= $cartCount ?></span>
-          <?php endif; ?>
-        </a>
+
+        <?php if (!$user || $user['role'] !== 'admin'): ?>
+          <a href="/bainhom/views/cart.php" class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'cart.php' ? 'active' : '' ?>">
+            <i data-lucide="shopping-cart"></i><span>Giỏ Hàng</span>
+            <?php if ($cartCount > 0): ?>
+              <span class="cart-badge"><?= $cartCount ?></span>
+            <?php endif; ?>
+          </a>
+        <?php endif; ?>
 
         <?php if ($user): ?>
           <?php if ($user['role'] === 'admin'): ?>
-            <a href="/bainhom/admin/orders.php"
-              class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/admin/orders.php') !== false ? 'active' : '' ?>">
+            <a href="/bainhom/admin/orders.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/admin/orders.php') !== false ? 'active' : '' ?>">
               <i data-lucide="file-text"></i><span>Quản Lý Đơn</span>
             </a>
+            <a href="/bainhom/admin/users.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/admin/users.php') !== false ? 'active' : '' ?>">
+              <i data-lucide="users"></i><span>Quản Lý Người Dùng</span>
+            </a>
           <?php else: ?>
-            <a href="/bainhom/views/my_orders.php"
-              class="nav-link <?= strpos($_SERVER['PHP_SELF'], 'my_orders.php') !== false ? 'active' : '' ?>">
+            <a href="/bainhom/views/my_orders.php" class="nav-link <?= strpos($_SERVER['PHP_SELF'], 'my_orders.php') !== false ? 'active' : '' ?>">
               <i data-lucide="package"></i>
               <span>Đơn Hàng Của Tôi</span>
             </a>
           <?php endif; ?>
         <?php endif; ?>
 
-        <a href="/bainhom/views/support.php"
-          class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'support.php' ? 'active' : '' ?>">
+        <a href="/bainhom/views/support.php" class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'support.php' ? 'active' : '' ?>">
           <i data-lucide="help-circle"></i><span>Hỗ Trợ</span>
         </a>
       </nav>
 
-      <!-- User Controls -->
       <div class="user-controls">
         <?php if ($user): ?>
           <div class="user-chip">
@@ -109,15 +99,13 @@ $categories = $pdo->query('SELECT * FROM categories ORDER BY id')->fetchAll();
               </a>
             <?php endif; ?>
 
-            <a href="/bainhom/controllers/auth.php?action=logout" class="btn-sm btn-ghost" title="Đăng xuất"
-              style="display: flex; align-items: center; gap: 4px;">
+            <a href="/bainhom/controllers/auth.php?action=logout" class="btn-sm btn-ghost" title="Đăng xuất" style="display: flex; align-items: center; gap: 4px;">
               <i data-lucide="log-out"></i>
               <span style="font-size: 12px; font-weight: 600;">Đăng xuất</span>
             </a>
           </div>
         <?php else: ?>
-          <a href="/bainhom/controllers/auth.php" class="nav-link"
-            style="background: #1e293b; color: #fff; padding: 8px 16px; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-weight: 600;">
+          <a href="/bainhom/controllers/auth.php" class="nav-link" style="background: #1e293b; color: #fff; padding: 8px 16px; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-weight: 600;">
             <i data-lucide="log-in"></i>
             <span>Đăng Nhập</span>
           </a>
@@ -126,13 +114,11 @@ $categories = $pdo->query('SELECT * FROM categories ORDER BY id')->fetchAll();
 
     </div>
 
-    <!-- Category Quick Filter -->
     <div class="category-bar">
       <div class="category-bar-inner">
         <a href="/bainhom/index.php" class="cat-link <?= !isset($_GET['cat']) ? 'active' : '' ?>">Tất cả</a>
         <?php foreach ($categories as $cat): ?>
-          <a href="/bainhom/index.php?cat=<?= $cat['slug'] ?>"
-            class="cat-link <?= ($_GET['cat'] ?? '') === $cat['slug'] ? 'active' : '' ?>">
+          <a href="/bainhom/index.php?cat=<?= $cat['slug'] ?>" class="cat-link <?= ($_GET['cat'] ?? '') === $cat['slug'] ? 'active' : '' ?>">
             <?= $cat['icon'] ?>   <?= clean($cat['name']) ?>
           </a>
         <?php endforeach; ?>
@@ -141,7 +127,6 @@ $categories = $pdo->query('SELECT * FROM categories ORDER BY id')->fetchAll();
   </header>
 
   <?php if ($user && $user['role'] === 'admin'): ?>
-    <!-- ADMIN QUICK BAR -->
     <div class="admin-bar">
       <div class="admin-bar-inner">
         <span class="admin-bar-label">
@@ -151,8 +136,6 @@ $categories = $pdo->query('SELECT * FROM categories ORDER BY id')->fetchAll();
         <div class="admin-bar-links">
           <a href="/bainhom/admin/index.php">📊 Thống kê</a>
           <a href="/bainhom/admin/products.php">📦 Sản phẩm</a>
-          <a href="/bainhom/admin/orders.php">🧾 Đơn hàng</a>
-          <a href="/bainhom/admin/users.php">👥 Người dùng</a>
           <span>📞 Hotline: <a href="tel:0909123456">0909 123 456</a></span>
         </div>
       </div>
