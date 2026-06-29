@@ -1,10 +1,27 @@
 <?php
+session_start();
+
+// 1. CHẶN NGAY TỪ ĐẦU (QUAN TRỌNG NHẤT)
+if (!isset($_SESSION['user']['id'])) {
+    $_SESSION['error'] = "Bạn cần đăng nhập để tra đơn";
+    header("Location: ../controllers/auth.php");
+    exit;
+}
+
+// 2. INCLUDE SAU KHI CHECK LOGIN
+require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/header.php';
 
-// 1. Mở thẻ PHP đúng cách
-// 2. Đảm bảo $pdo và $user đã tồn tại (thường được khởi tạo trong header.php)
-$stmt = $pdo->prepare("SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC");
-$stmt->execute([$user['id']]);
+$userId = $_SESSION['user']['id'];
+
+// 3. LẤY ĐƠN HÀNG
+$stmt = $pdo->prepare("
+    SELECT * FROM orders 
+    WHERE user_id = ? 
+    ORDER BY created_at DESC
+");
+
+$stmt->execute([$userId]);
 $orders = $stmt->fetchAll();
 ?>
 
