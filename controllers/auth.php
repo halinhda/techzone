@@ -1,7 +1,15 @@
 <?php
 // Kiểm tra nếu session chưa bắt đầu thì mới bắt đầu
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+  session_start();
+}
+if (!isset($_SESSION['redirect_after_login']) && isset($_SERVER['HTTP_REFERER'])) {
+  $ref = $_SERVER['HTTP_REFERER'];
+
+  // Chỉ nhận redirect nội bộ (an toàn)
+  if (str_contains($ref, '/bainhom/')) {
+    $_SESSION['redirect_after_login'] = $ref;
+  }
 }
 
 require_once __DIR__ . '/../includes/config.php';
@@ -16,9 +24,12 @@ if (($_GET['action'] ?? '') === 'logout') {
   }
   session_destroy();
 
-  // Nhảy hẳn ra ngoài thư mục gốc để về trang chủ chính
-  redirect('/bainhom/index.php');
-  exit;
+  // SAU LOGIN THÀNH CÔNG
+  $redirect = $_SESSION['redirect_after_login'] ?? '/bainhom/index.php';
+  unset($_SESSION['redirect_after_login']);
+
+  header("Location: $redirect");
+  exit();
 }
 
 // ---- VARS ----
@@ -30,85 +41,138 @@ $flash = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $action = $_POST['action'] ?? 'login';
 
+  // =========================
+  // LOGIN
+  // =========================
   if ($action === 'login') {
+
     $email = trim($_POST['email'] ?? '');
     $pass = $_POST['password'] ?? '';
 
     if (!$email || !$pass) {
       $errors[] = 'Vui lòng nhập đầy đủ email và mật khẩu.';
+      $mode = 'login';
+
     } else {
+
       $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
       $stmt->execute([$email]);
       $user = $stmt->fetch();
 
       if ($user && password_verify($pass, $user['password'])) {
-        $_SESSION['user'] = [
-          'id' => $user['id'],
-          'fullname' => $user['fullname'],
-          'email' => $user['email'],
-          'role' => $user['role'],
-        ];
 
-        // Merge cart
-        $sid = cartSessionId();
-        $pdo->prepare('UPDATE cart_items SET user_id = ? WHERE session_id = ? AND user_id IS NULL')
-          ->execute([$user['id'], $sid]);
+        // 🔒 Check khóa tài khoản
+        if (isset($user['status']) && $user['status'] == 0) {
+          $errors[] = 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.';
+          $mode = 'login';
 
-        // SỬA ĐOẠN DƯỚI ĐÂY:
-// ... bên trong phần xử lý đăng nhập thành công ...
-
-        if ($user['role'] === 'admin') {
-          // SỬA ĐOẠN NÀY: Thêm dấu gạch chéo "/" ở đầu để nó quay về gốc
-          header('Location: /bainhom/admin/index.php');
-          exit();
         } else {
-          // Tương tự cho trang người dùng thường
-          header('Location: /bainhom/index.php');
+
+          // =========================
+          // SET SESSION USER
+          // =========================
+          $_SESSION['user'] = [
+            'id' => $user['id'],
+            'fullname' => $user['fullname'],
+            'email' => $user['email'],
+            'role' => $user['role'],
+          ];
+
+          // =========================
+          // MERGE CART
+          // =========================
+          $sid = cartSessionId();
+          $pdo->prepare('UPDATE cart_items SET user_id = ? WHERE session_id = ? AND user_id IS NULL')
+            ->execute([$user['id'], $sid]);
+
+          // =========================
+          // REDIRECT LOGIC
+          // =========================
+          $redirect = $_SESSION['redirect_after_login'] ?? null;
+
+          if (!$redirect) {
+            $redirect = ($user['role'] === 'admin')
+              ? '/bainhom/admin/index.php'
+              : '/bainhom/index.php';
+          }
+
+          // chống redirect bậy
+          if (!str_starts_with($redirect, '/bainhom/')) {
+            $redirect = '/bainhom/index.php';
+          }
+
+          unset($_SESSION['redirect_after_login']);
+
+          header("Location: $redirect");
           exit();
         }
 
       } else {
         $errors[] = 'Email hoặc mật khẩu không đúng.';
+        $mode = 'login';
       }
     }
-    $mode = 'login';
 
+  // =========================
+  // REGISTER
+  // =========================
   } elseif ($action === 'register') {
+
     $fullname = clean($_POST['fullname'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $pass = $_POST['password'] ?? '';
     $pass2 = $_POST['password2'] ?? '';
 
-    if (!$fullname || !$email || !$pass)
+    if (!$fullname || !$email || !$pass) {
       $errors[] = 'Vui lòng nhập đầy đủ thông tin.';
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL))
-      $errors[] = 'Email không hợp lệ.';
-    if (strlen($pass) < 6)
-      $errors[] = 'Mật khẩu tối thiểu 6 ký tự.';
-    if ($pass !== $pass2)
-      $errors[] = 'Mật khẩu xác nhận không khớp.';
+    }
 
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      $errors[] = 'Email không hợp lệ.';
+    }
+
+    if (strlen($pass) < 6) {
+      $errors[] = 'Mật khẩu tối thiểu 6 ký tự.';
+    }
+
+    if ($pass !== $pass2) {
+      $errors[] = 'Mật khẩu xác nhận không khớp.';
+    }
+
+    // check trùng email
     if (empty($errors)) {
       $chk = $pdo->prepare('SELECT id FROM users WHERE email = ?');
       $chk->execute([$email]);
-      if ($chk->fetch())
+      if ($chk->fetch()) {
         $errors[] = 'Email này đã được đăng ký.';
+      }
     }
 
+    // tạo user
     if (empty($errors)) {
+
       $hash = password_hash($pass, PASSWORD_BCRYPT);
+
       $stmt = $pdo->prepare('INSERT INTO users (fullname, email, password, role) VALUES (?,?,?,?)');
-      $stmt->execute([$fullname, $email, $hash, 'customer']);
+      $stmt->execute([$fullname, $email, $hash, 'user']);
+
       $uid = $pdo->lastInsertId();
 
       $_SESSION['user'] = [
         'id' => $uid,
         'fullname' => $fullname,
         'email' => $email,
-        'role' => 'customer',
+        'role' => 'user',
       ];
-      redirect('index.php');
+
+      // redirect sau register
+      $redirect = $_SESSION['redirect_after_login'] ?? '/bainhom/index.php?register=success';
+      unset($_SESSION['redirect_after_login']);
+
+      header("Location: $redirect");
+      exit();
     }
+
     $mode = 'register';
   }
 }

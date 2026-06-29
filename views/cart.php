@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../includes/header.php'; ;
 $pageTitle = 'Giỏ Hàng của bạn';
 require_once __DIR__ . '/../includes/header.php';
 
@@ -16,20 +15,22 @@ $stmt = $pdo->prepare("
 $stmt->execute([$sid, $userId]);
 $cartItems = $stmt->fetchAll();
 
-function cartImage(string $file): string {
-    if (empty($file)) return '';
-    $path = ltrim($file, '/');
-    if (str_starts_with($path, 'assets/images/')) {
-        $path = substr($path, strlen('assets/images/'));
-    } elseif (str_starts_with($path, 'images/')) {
-        $path = substr($path, strlen('images/'));
-    }
-    return '/bainhom/assets/images/' . $path;
+function cartImage(string $file): string
+{
+  if (empty($file))
+    return '';
+  $path = ltrim($file, '/');
+  if (str_starts_with($path, 'assets/images/')) {
+    $path = substr($path, strlen('assets/images/'));
+  } elseif (str_starts_with($path, 'images/')) {
+    $path = substr($path, strlen('images/'));
+  }
+  return '/bainhom/assets/images/' . $path;
 }
 
 $subtotal = 0;
 foreach ($cartItems as $item) {
-    $subtotal += (float)$item['price'] * (int)$item['quantity'];
+  $subtotal += (float) $item['price'] * (int) $item['quantity'];
 }
 $shipping = $subtotal >= FREE_SHIP_MIN ? 0 : SHIPPING_FEE;
 $total = $subtotal + $shipping;
@@ -55,9 +56,9 @@ $total = $subtotal + $shipping;
     <div class="cart-grid">
       <div class="cart-card-list">
         <?php foreach ($cartItems as $item):
-          $itemTotal = (float)$item['price'] * (int)$item['quantity'];
+          $itemTotal = (float) $item['price'] * (int) $item['quantity'];
           $img = cartImage($item['image_file'] ?? '');
-        ?>
+          ?>
           <article class="cart-item-card">
             <div class="cart-item-thumb">
               <?php if ($img): ?>
@@ -74,11 +75,14 @@ $total = $subtotal + $shipping;
               </div>
               <div class="cart-item-actions">
                 <div class="qty-control">
-                  <button type="button" class="qty-btn js-qty" data-pid="<?= (int)$item['product_id'] ?>" data-delta="-1">−</button>
-                  <span class="qty-val"><?= (int)$item['quantity'] ?></span>
-                  <button type="button" class="qty-btn js-qty" data-pid="<?= (int)$item['product_id'] ?>" data-delta="1">+</button>
+                  <button type="button" class="qty-btn js-qty" data-pid="<?= (int) $item['product_id'] ?>"
+                    data-delta="-1">−</button>
+                  <span class="qty-val"><?= (int) $item['quantity'] ?></span>
+                  <button type="button" class="qty-btn js-qty" data-pid="<?= (int) $item['product_id'] ?>"
+                    data-delta="1">+</button>
                 </div>
-                <button type="button" class="btn btn-danger btn-sm js-remove-cart" data-pid="<?= (int)$item['product_id'] ?>">Xóa</button>
+                <button type="button" class="btn btn-danger btn-sm js-remove-cart"
+                  data-pid="<?= (int) $item['product_id'] ?>">Xóa</button>
               </div>
             </div>
             <div class="cart-item-total"><?= formatVND($itemTotal) ?></div>
@@ -89,13 +93,22 @@ $total = $subtotal + $shipping;
       <aside class="cart-summary-card">
         <h2 class="cart-summary-title">Tóm tắt đơn hàng</h2>
         <div class="cart-summary-row"><span>Tạm tính</span><strong><?= formatVND($subtotal) ?></strong></div>
-        <div class="cart-summary-row"><span>Phí vận chuyển</span><strong><?= $shipping === 0 ? 'Miễn phí' : formatVND($shipping) ?></strong></div>
+        <div class="cart-summary-row"><span>Phí vận
+            chuyển</span><strong><?= $shipping === 0 ? 'Miễn phí' : formatVND($shipping) ?></strong></div>
         <div class="cart-summary-row total"><span>Tổng cộng</span><strong><?= formatVND($total) ?></strong></div>
         <p class="cart-note">Miễn phí vận chuyển khi đơn hàng từ <?= formatVND(FREE_SHIP_MIN) ?>.</p>
-        <a href="/bainhom/checkout.php" class="btn btn-primary btn-block">Tiến hành thanh toán</a>
+        <?php if (!$user || $user['role'] !== 'admin'): ?>
+          <a href="/bainhom/checkout.php" class="btn btn-primary btn-block">
+            Tiến hành thanh toán
+          </a>
+        <?php else: ?>
+          <div class="alert alert-warning mt-3">
+            Tài khoản quản trị không được phép mua hàng.
+          </div>
+        <?php endif; ?>
       </aside>
     </div>
   <?php endif; ?>
 </section>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?> 
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

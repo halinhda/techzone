@@ -1,7 +1,68 @@
-<?php
-// index.php – Trang chủ / Cửa hàng sản phẩm
-require_once __DIR__ . '/includes/config.php';
+<?php require_once __DIR__ . '/includes/config.php'; ?>
 
+<?php if (!empty($_GET['register']) && $_GET['register'] === 'success'): ?>
+
+  <div id="toast-success" style="
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    z-index: 99999;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: popIn 0.35s ease;
+    min-width: 240px;
+  ">
+    <span style="
+      background: rgba(255,255,255,0.2);
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: 900;
+    ">✔</span>
+    🎉 Đăng ký tài khoản thành công!
+  </div>
+
+  <style>
+    @keyframes popIn {
+      0% {
+        transform: translateY(-20px) scale(0.9);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+  </style>
+
+  <script>
+    setTimeout(() => {
+      const el = document.getElementById('toast-success');
+      if (el) {
+        el.style.transition = "all 0.4s ease";
+        el.style.transform = "translateY(-10px)";
+        el.style.opacity = "0";
+        setTimeout(() => el.remove(), 400);
+      }
+    }, 2500);
+  </script>
+
+<?php endif; ?>
+
+
+<?php
 $pdo = getDB();
 
 // ---- FILTERS ----
@@ -506,3 +567,4 @@ require_once __DIR__ . '/includes/header.php';
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
+?>

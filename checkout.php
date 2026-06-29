@@ -2,10 +2,34 @@
 // checkout.php
 require_once __DIR__ . '/includes/config.php';
 
+if (session_status() === PHP_SESSION_NONE)
+    session_start();
+if (isset($_SESSION['error'])): ?>
+    <div style="background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <?= $_SESSION['error']; ?>
+    </div>
+    <?php
+    unset($_SESSION['error']); // Xóa lỗi sau khi đã hiển thị
+endif;
+
 // 1. TẠO CSRF TOKEN BẢO MẬT
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+// CHẶN CHƯA ĐĂNG NHẬP
+$user = currentUser();
+
+if (!$user || empty($user['id'])) {
+
+    // lưu lại trang hiện tại
+    $_SESSION['redirect_after_login'] = '/bainhom/checkout.php';
+
+    $_SESSION['error'] = 'Bạn cần đăng nhập để thanh toán!';
+
+    header('Location: /bainhom/controllers/auth.php?mode=login');
+    exit;
+}
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -15,7 +39,7 @@ require_once __DIR__ . '/includes/header.php';
 
 $pdo = getDB();
 $sid = cartSessionId();
-$userId = currentUser()['id'] ?? null;
+$userId = $user['id'];
 
 // Lấy thêm p.stock để kiểm tra tồn kho luôn (Tối ưu hiệu suất)
 $stmt = $pdo->prepare("
@@ -104,10 +128,25 @@ function checkoutImage(string $file): string
                     <div class="form-group">
                         <label class="form-label">Phương thức thanh toán</label>
                         <div class="pay-options">
-                            <label class="pay-option selected"><input type="radio" name="pay" value="cod" checked>
-                                <strong>COD</strong></label>
-                            <label class="pay-option"><input type="radio" name="pay" value="transfer"> <strong>Chuyển
-                                    khoản</strong></label>
+                            <label class="pay-option">
+                                <input type="radio" name="pay" value="cod" checked>
+                                <div class="option-label">COD</div>
+                            </label>
+
+                            <label class="pay-option">
+                                <input type="radio" name="pay" value="transfer">
+                                <div class="option-label">Chuyển khoản</div>
+                            </label>
+
+                            <label class="pay-option">
+                                <input type="radio" name="pay" value="qr">
+                                <div class="option-label">Quét mã QR</div>
+                            </label>
+
+                            <label class="pay-option">
+                                <input type="radio" name="pay" value="momo">
+                                <div class="option-label">Ví Momo</div>
+                            </label>
                         </div>
                     </div>
                 </div>

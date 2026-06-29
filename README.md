@@ -8,9 +8,9 @@
 
 ## 2. Truy cập website
 - Trang chủ: http://localhost/bainhom/index.php
-- Giỏ hàng: http://localhost/bainhom/cart.php
+- Giỏ hàng: http://localhost/bainhom/views/cart.php
 - Thanh toán: http://localhost/bainhom/checkout.php
-- Hỗ trợ: http://localhost/bainhom/support.php
+- Hỗ trợ: http://localhost/bainhom/views/support.php
 
 ## 3. Tài khoản mẫu
 - Admin: admin@techzone.com / 123456

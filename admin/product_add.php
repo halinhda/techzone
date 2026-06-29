@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo = getDB();
         // Insert đầy đủ các cột quan trọng theo DB của bạn
-        $sql = "INSERT INTO products (name, price, brand, stock, description, image_file, category_id, stock_quantity) 
+        $sql = "INSERT INTO products (name, price, brand, stock, description, image_file, category_id, stock) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$name, $price, $brand, $stock, $desc, $imagePath, $category_id, $stock]);
