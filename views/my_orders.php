@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// 1. CHẶN NGAY TỪ ĐẦU (QUAN TRỌNG NHẤT)
+// 1. CHẶN NGAY TỪ ĐẦU
 if (!isset($_SESSION['user']['id'])) {
     $_SESSION['error'] = "Bạn cần đăng nhập để tra đơn";
     header("Location: ../controllers/auth.php");

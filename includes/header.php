@@ -136,6 +136,7 @@ $categories = $pdo->query('SELECT * FROM categories ORDER BY id')->fetchAll();
         <div class="admin-bar-links">
           <a href="/bainhom/admin/index.php">📊 Thống kê</a>
           <a href="/bainhom/admin/products.php">📦 Sản phẩm</a>
+          <a href="/bainhom/admin/categories.php">📁 Danh mục</a>
           <span>📞 Hotline: <a href="tel:0909123456">0909 123 456</a></span>
         </div>
       </div>
