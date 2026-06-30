@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../includes/config.php';
 $currentUser = currentUser();
 $isAdmin = isset($currentUser['role']) && $currentUser['role'] === 'admin';
 
@@ -11,7 +12,7 @@ $pdo = getDB();
 // 2. TÁCH BIỆT LOGIC XỬ LÝ DATABASE
 if ($isAdmin) {
     // ---- LOGIC DÀNH RIÊNG CHO ADMIN (Không đụng gì tới giỏ hàng) ----
-    $stmt = $pdo->prepare("SELECT id, username, email, role, created_at FROM users ORDER BY id DESC");
+    $stmt = $pdo->prepare("SELECT id, fullname AS username, email, role, created_at FROM users ORDER BY id DESC");
     $stmt->execute();
     $usersList = $stmt->fetchAll();
 } else {
