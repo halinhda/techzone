@@ -1,227 +1,126 @@
 <?php
-// admin/products.php
 session_start();
 require_once __DIR__ . '/../includes/config.php';
 
-// Check admin
-if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'admin') {
-    header('Location: /bainhom/index.php');
-    exit;
-}
+$pageTitle = 'Quản lý sản phẩm';
+$currentPage = 'products';
 
 $pdo = getDB();
 
-// Lấy sản phẩm (giả sử có cột image)
-$stmt = $pdo->query("SELECT id, name, price, image_file FROM products ORDER BY id DESC");
+// Filters
+$search = trim($_GET['q'] ?? '');
+$catFilter = (int)($_GET['cat'] ?? 0);
+
+$sql = "SELECT p.*, c.name AS cat_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE 1=1";
+$params = [];
+
+if ($search !== '') {
+    $sql .= " AND (p.name LIKE ? OR p.brand LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+}
+if ($catFilter > 0) {
+    $sql .= " AND p.category_id = ?";
+    $params[] = $catFilter;
+}
+
+$sql .= " ORDER BY p.id DESC";
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 $products = $stmt->fetchAll();
+
+$categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll();
+
+require_once __DIR__ . '/admin_layout.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="vi">
+<div class="page-header">
+    <h1>📦 Sản phẩm <span class="badge badge-secondary"><?= count($products) ?></span></h1>
+    <a href="product_add.php" class="btn btn-primary">+ Thêm sản phẩm</a>
+</div>
 
-<head>
-    <meta charset="UTF-8">
-    <title>Quản lý sản phẩm</title>
-
-    <style>
-        body {
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            background: #f1f5f9;
-            margin: 0;
-            padding: 40px;
-            color: #0f172a;
-        }
-
-        .container {
-            max-width: 1100px;
-            margin: auto;
-            background: #fff;
-            padding: 32px;
-            border-radius: 18px;
-            box-shadow: 0 20px 40px rgba(15, 23, 42, .08);
-        }
-
-        h1 {
-            margin: 0 0 24px;
-            text-align: center;
-            font-size: 32px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #2563eb, #7c3aed);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .btn {
-            padding: 10px 18px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: .2s ease;
-        }
-
-        .btn-add {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: #fff;
-            box-shadow: 0 8px 18px rgba(37, 99, 235, .35);
-        }
-
-        .btn-add:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 16px 30px rgba(37, 99, 235, .45);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            overflow: hidden;
-        }
-
-        thead {
-            background: #f8fafc;
-        }
-
-        th {
-            padding: 16px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            color: #64748b;
-            text-align: left;
-        }
-
-        td {
-            padding: 18px 16px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 14px;
-            vertical-align: middle;
-        }
-
-        tbody tr {
-            transition: .2s ease;
-        }
-
-        tbody tr:hover {
-            background: #f8fafc;
-            transform: scale(1.003);
-        }
-
-        /* PRODUCT CELL */
-        .product-cell {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .product-img {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
-            object-fit: cover;
-            background: #e5e7eb;
-            box-shadow: 0 6px 14px rgba(15, 23, 42, .15);
-        }
-
-        .product-name {
-            font-weight: 600;
-            color: #0f172a;
-        }
-
-        .price {
-            font-weight: 700;
-            color: #dc2626;
-        }
-
-        .actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-edit {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            color: #0f172a;
-        }
-
-        .btn-edit:hover {
-            background: #f1f5f9;
-            box-shadow: 0 6px 14px rgba(15, 23, 42, .12);
-        }
-
-        .btn-delete {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .btn-delete:hover {
-            box-shadow: 0 6px 14px rgba(220, 38, 38, .25);
-        }
-    </style>
-</head>
-
-<body>
-
-    <div class="container">
-
-        <h1>Quản lý sản phẩm</h1>
-
-        <div class="top-bar">
-            <a href="/bainhom/index.php" class="btn btn-edit">← Trang chủ</a>
-            <a href="product_add.php" class="btn btn-add">+ Thêm sản phẩm</a>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Sản phẩm</th>
-                    <th>Giá</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($products as $p): ?>
-                    <tr>
-                        <td><?= $p['id'] ?></td>
-                        <td>
-                            <div class="product-cell">
-                                <img src="/bainhom/assets/images/<?= htmlspecialchars($p['image_file'] ?: 'no-image.png') ?>"
-                                    class="product-img">
-                                <span class="product-name">
-                                    <?= htmlspecialchars($p['name']) ?>
-                                </span>
-                            </div>
-                        </td>
-                        <td class="price"><?= number_format($p['price']) ?>đ</td>
-                        <td>
-                            <div class="actions">
-                                <a href="product_edit.php?id=<?= $p['id'] ?>" class="btn btn-edit">Sửa</a>
-                                <a href="product_delete.php?id=<?= $p['id'] ?>" class="btn btn-delete"
-                                    onclick="return confirm('Xóa sản phẩm này?')">
-                                    Xóa
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
+<!-- Filters -->
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body" style="padding:16px 20px;">
+        <form method="GET" class="filter-bar">
+            <input type="text" name="q" class="form-control" style="max-width:280px;" placeholder="🔍 Tìm tên, thương hiệu..." value="<?= htmlspecialchars($search) ?>">
+            <select name="cat" class="form-control" style="max-width:200px;">
+                <option value="0">Tất cả danh mục</option>
+                <?php foreach ($categories as $c): ?>
+                    <option value="<?= $c['id'] ?>" <?= $catFilter == $c['id'] ? 'selected' : '' ?>><?= htmlspecialchars($c['name']) ?></option>
                 <?php endforeach; ?>
-            </tbody>
-        </table>
-
+            </select>
+            <button type="submit" class="btn btn-outline">Lọc</button>
+            <?php if ($search || $catFilter): ?>
+                <a href="products.php" class="btn btn-sm" style="color:var(--text-sub);">✕ Xóa bộ lọc</a>
+            <?php endif; ?>
+        </form>
     </div>
+</div>
 
-</body>
+<!-- Table -->
+<div class="card">
+    <div class="card-body" style="padding:0;">
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Sản phẩm</th>
+                        <th>Danh mục</th>
+                        <th>Giá</th>
+                        <th>Tồn kho</th>
+                        <th>Nổi bật</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($products)): ?>
+                        <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-sub);">Không tìm thấy sản phẩm nào.</td></tr>
+                    <?php endif; ?>
 
-</html>
+                    <?php foreach ($products as $p): ?>
+                        <tr>
+                            <td style="color:var(--text-sub);">#<?= $p['id'] ?></td>
+                            <td>
+                                <div class="product-cell">
+                                    <img src="/bainhom/assets/images/<?= htmlspecialchars($p['image_file'] ?: 'no-image.png') ?>" class="product-thumb">
+                                    <div>
+                                        <div class="product-cell-name"><?= htmlspecialchars($p['name']) ?></div>
+                                        <div class="product-cell-brand"><?= htmlspecialchars($p['brand']) ?></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge badge-info"><?= htmlspecialchars($p['cat_name'] ?? '—') ?></span></td>
+                            <td class="price"><?= number_format($p['price'], 0, ',', '.') ?>đ</td>
+                            <td>
+                                <?php if ($p['stock'] == 0): ?>
+                                    <span class="badge badge-danger">Hết hàng</span>
+                                <?php elseif ($p['stock'] < 5): ?>
+                                    <span class="stock-low"><?= $p['stock'] ?> ⚠️</span>
+                                <?php else: ?>
+                                    <span class="stock-ok"><?= $p['stock'] ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($p['featured']): ?>
+                                    <span class="badge badge-warning">⭐ Featured</span>
+                                <?php else: ?>
+                                    <span style="color:var(--text-sub);">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <div style="display:flex;gap:6px;">
+                                    <a href="product_edit.php?id=<?= $p['id'] ?>" class="btn btn-outline btn-sm">Sửa</a>
+                                    <a href="product_delete.php?id=<?= $p['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Xóa sản phẩm này?')">Xóa</a>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<?php require_once __DIR__ . '/admin_footer.php'; ?>

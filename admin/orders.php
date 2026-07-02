@@ -1,67 +1,97 @@
 <?php
-// admin/orders.php
+session_start();
 require_once __DIR__ . '/../includes/config.php';
 
-// Kiểm tra quyền admin
+$pageTitle = 'Quản lý đơn hàng';
+$currentPage = 'orders';
+
 if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'admin') {
-    header("Location: /bainhom/index.php");
-    exit();
+    die("Truy cập bị từ chối");
 }
 
-$pageTitle = "Quản lý đơn hàng";
-require_once __DIR__ . '/../includes/header.php';
+$pdo = getDB();
+$statusFilter = $_GET['status'] ?? '';
 
-// Lấy danh sách đơn hàng
-$sql = "SELECT o.*, u.fullname 
-        FROM orders o 
-        LEFT JOIN users u ON o.user_id = u.id 
-        ORDER BY o.created_at DESC";
-$stmt = getDB()->query($sql);
+// Build query
+$sql = "SELECT * FROM orders WHERE 1=1";
+$params = [];
 
+if ($statusFilter) {
+    $sql .= " AND status = ?";
+    $params[] = $statusFilter;
+}
+
+$sql .= " ORDER BY created_at DESC";
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 $orders = $stmt->fetchAll();
+
+require_once __DIR__ . '/admin_layout.php';
 ?>
 
-<div class="container">
-    <div class="admin-card">
-        <div class="section-header">
-            <h1 class="section-title">Quản lý đơn hàng</h1>
-            <span class="results-count"><?= count($orders) ?> đơn hàng</span>
-        </div>
+<div class="page-header">
+    <h1>📋 Đơn hàng <span class="badge badge-secondary"><?= count($orders) ?></span></h1>
+    <a href="export_orders.php" class="btn btn-outline">📥 Xuất CSV</a>
+</div>
 
+<!-- Filters -->
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-body" style="padding:16px 20px;">
+        <form method="GET" class="filter-bar">
+            <span style="font-weight:600;font-size:14px;">Lọc theo trạng thái:</span>
+            <select name="status" class="form-control" style="max-width:200px;" onchange="this.form.submit()">
+                <option value="">Tất cả trạng thái</option>
+                <option value="Chờ xử lý" <?= $statusFilter === 'Chờ xử lý' ? 'selected' : '' ?>>Chờ xử lý</option>
+                <option value="Đang giao" <?= $statusFilter === 'Đang giao' ? 'selected' : '' ?>>Đang giao</option>
+                <option value="Đã hoàn thành" <?= $statusFilter === 'Đã hoàn thành' ? 'selected' : '' ?>>Đã hoàn thành</option>
+                <option value="Đã hủy" <?= $statusFilter === 'Đã hủy' ? 'selected' : '' ?>>Đã hủy</option>
+            </select>
+        </form>
+    </div>
+</div>
+
+<?php if (isset($_GET['msg']) && $_GET['msg'] === 'success'): ?>
+    <div class="alert alert-success">✅ Cập nhật trạng thái đơn hàng thành công!</div>
+<?php endif; ?>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body" style="padding:0;">
         <div class="table-container">
-            <table class="table data-table">
+            <table class="data-table">
                 <thead>
                     <tr>
                         <th>Mã ĐH</th>
                         <th>Khách hàng</th>
+                        <th>Số ĐT</th>
                         <th>Ngày đặt</th>
                         <th>Tổng tiền</th>
                         <th>Trạng thái</th>
+                        <th>Hành động</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($orders as $o): ?>
+                    <?php if (empty($orders)): ?>
+                        <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-sub);">Chưa có đơn hàng nào.</td></tr>
+                    <?php endif; ?>
+
+                    <?php foreach ($orders as $order): 
+                        $statusClass = match($order['status']) {
+                            'Đã hoàn thành' => 'badge-success',
+                            'Đang giao' => 'badge-info',
+                            'Đã hủy' => 'badge-danger',
+                            default => 'badge-warning',
+                        };
+                    ?>
                         <tr>
-                            <td>#<?= htmlspecialchars($o['id']) ?></td>
-
-                            <td><?= htmlspecialchars($o['fullname'] ?? 'Khách lẻ') ?></td>
-
-                            <td><?= date('d/m/Y H:i', strtotime($o['created_at'])) ?></td>
-                            <td><?= number_format($o['total_price'], 0, ',', '.') ?>đ</td>
+                            <td><strong><?= htmlspecialchars($order['order_code']) ?></strong></td>
+                            <td><?= htmlspecialchars($order['customer_name']) ?></td>
+                            <td><?= htmlspecialchars($order['customer_phone']) ?></td>
+                            <td><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></td>
+                            <td class="price"><?= number_format($order['total_price'], 0, ',', '.') ?>đ</td>
+                            <td><span class="badge <?= $statusClass ?>"><?= $order['status'] ?></span></td>
                             <td>
-                                <form action="update_order_status.php" method="POST" style="margin: 0;">
-                                    <input type="hidden" name="order_id" value="<?= $o['id'] ?>">
-                                    <select name="status" onchange="this.form.submit()" class="form-select">
-                                        <option value="Chờ xử lý" <?= $o['status'] == 'Chờ xử lý' ? 'selected' : '' ?>>Chờ xử
-                                            lý</option>
-                                        <option value="Đang giao" <?= $o['status'] == 'Đang giao' ? 'selected' : '' ?>>Đang
-                                            giao</option>
-                                        <option value="Đã hoàn thành" <?= $o['status'] == 'Đã hoàn thành' ? 'selected' : '' ?>>
-                                            Đã hoàn thành</option>
-                                        <option value="Đã hủy" <?= $o['status'] == 'Đã hủy' ? 'selected' : '' ?>>Đã hủy
-                                        </option>
-                                    </select>
-                                </form>
+                                <a href="order_detail.php?id=<?= $order['id'] ?>" class="btn btn-outline btn-sm">Xem / Xử lý</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -71,4 +101,4 @@ $orders = $stmt->fetchAll();
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/admin_footer.php'; ?>

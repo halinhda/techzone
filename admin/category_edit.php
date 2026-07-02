@@ -2,6 +2,9 @@
 session_start();
 require_once __DIR__ . '/../includes/config.php';
 
+$pageTitle = 'Sửa danh mục';
+$currentPage = 'categories';
+
 if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'admin') {
     header("Location: ../index.php");
     exit;
@@ -32,6 +35,7 @@ function makeSlug($str) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
+    $icon = trim($_POST['icon']);
     $slug = trim($_POST['slug']);
 
     if ($name === '') {
@@ -45,195 +49,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($check->fetch()) {
             $error = 'Slug đã tồn tại';
         } else {
-            $pdo->prepare("UPDATE categories SET name = ?, slug = ? WHERE id = ?")
-                ->execute([$name, $slug, $id]);
+            $pdo->prepare("UPDATE categories SET name = ?, icon = ?, slug = ? WHERE id = ?")
+                ->execute([$name, $icon, $slug, $id]);
 
-            header("Location: categories.php?updated=1");
+            header("Location: categories.php");
             exit;
         }
     }
 }
+
+require_once __DIR__ . '/admin_layout.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<title>Sửa danh mục</title>
-
-<style>
-:root{
-    --primary:#2563eb;
-    --primary-dark:#1e40af;
-    --bg:#f1f5f9;
-    --card:#ffffff;
-    --text:#0f172a;
-    --muted:#64748b;
-    --border:#e5e7eb;
-    --danger:#dc2626;
-}
-
-*{box-sizing:border-box}
-
-body{
-    margin:0;
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:
-        radial-gradient(1200px 500px at top,#e0e7ff 0%,transparent 60%),
-        var(--bg);
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    color:var(--text);
-}
-
-/* CARD */
-.card{
-    width:100%;
-    max-width:520px;
-    background:var(--card);
-    border-radius:18px;
-    padding:32px;
-    box-shadow:
-        0 20px 40px rgba(15,23,42,.1),
-        0 8px 16px rgba(15,23,42,.06);
-    animation:fadeUp .35s ease;
-}
-
-@keyframes fadeUp{
-    from{opacity:0;transform:translateY(12px)}
-    to{opacity:1;transform:none}
-}
-
-/* HEADER */
-.header{
-    text-align:center;
-    margin-bottom:28px;
-}
-
-.header h1{
-    margin:0;
-    font-size:28px;
-    font-weight:800;
-    letter-spacing:-.03em;
-    background:linear-gradient(135deg,#2563eb,#7c3aed);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-}
-
-.header p{
-    margin-top:6px;
-    font-size:14px;
-    color:var(--muted);
-}
-
-/* FORM */
-label{
-    display:block;
-    margin-bottom:6px;
-    font-size:14px;
-    font-weight:600;
-}
-
-input{
-    width:100%;
-    padding:12px 14px;
-    border-radius:10px;
-    border:1px solid var(--border);
-    font-size:14px;
-    margin-bottom:18px;
-    transition:.2s ease;
-}
-
-input:focus{
-    outline:none;
-    border-color:var(--primary);
-    box-shadow:0 0 0 3px rgba(37,99,235,.15);
-}
-
-/* ERROR */
-.error{
-    background:#fee2e2;
-    color:#7f1d1d;
-    padding:12px 14px;
-    border-radius:10px;
-    font-size:14px;
-    margin-bottom:18px;
-}
-
-/* ACTIONS */
-.actions{
-    display:flex;
-    gap:12px;
-    margin-top:10px;
-}
-
-button{
-    flex:1;
-    padding:12px;
-    border:none;
-    border-radius:12px;
-    font-size:14px;
-    font-weight:700;
-    cursor:pointer;
-    transition:.2s ease;
-}
-
-.btn-save{
-    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-    color:#fff;
-    box-shadow:0 10px 20px rgba(37,99,235,.35);
-}
-
-.btn-save:hover{
-    transform:translateY(-2px);
-    box-shadow:0 16px 30px rgba(37,99,235,.45);
-}
-
-.btn-back{
-    background:#f8fafc;
-    border-radius: 15px;
-    color:var(--text);
-    text-decoration:none;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:600;
-}
-
-.btn-back:hover{
-    background:#eef2ff;
-    background-size: 20px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-    <div class="header">
-        <h1>Sửa danh mục</h1>
-        <p>Cập nhật thông tin danh mục sản phẩm</p>
-    </div>
-
-    <?php if ($error): ?>
-        <div class="error"><?= $error ?></div>
-    <?php endif; ?>
-
-    <form method="post">
-        <label>Tên danh mục</label>
-        <input type="text" name="name" value="<?= htmlspecialchars($category['name']) ?>" required>
-
-        <label>Slug (có thể để trống)</label>
-        <input type="text" name="slug" value="<?= htmlspecialchars($category['slug']) ?>">
-
-        <div class="actions">
-            <button type="submit" class="btn-save">Lưu thay đổi</button>
-            <a href="categories.php" class="btn-back">Quay lại</a>
-        </div>
-    </form>
+<div class="page-header">
+    <h1>✏️ Sửa danh mục: <?= htmlspecialchars($category['name']) ?></h1>
+    <a href="categories.php" class="btn btn-outline">← Quay lại</a>
 </div>
 
-</body>
-</html>
+<div class="card" style="max-width:520px;">
+    <div class="card-body">
+        <?php if ($error): ?>
+            <div class="alert alert-danger">⚠️ <?= $error ?></div>
+        <?php endif; ?>
+
+        <form method="POST">
+            <div class="form-group">
+                <label class="form-label">Tên danh mục *</label>
+                <input type="text" name="name" class="form-control" required value="<?= htmlspecialchars($category['name']) ?>">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Icon (Emoji)</label>
+                <input type="text" name="icon" class="form-control" value="<?= htmlspecialchars($category['icon']) ?>">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Slug</label>
+                <input type="text" name="slug" class="form-control" value="<?= htmlspecialchars($category['slug']) ?>">
+            </div>
+
+            <div style="display:flex;gap:12px;">
+                <button type="submit" class="btn btn-primary">💾 Lưu thay đổi</button>
+                <a href="categories.php" class="btn btn-outline">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<?php require_once __DIR__ . '/admin_footer.php'; ?>

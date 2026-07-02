@@ -6,10 +6,21 @@
 define('HOTLINE', '0909 123 456');
 
 
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');        // ← đổi theo môi trường của bạn
-define('DB_PASS', '');            // ← đổi theo môi trường của bạn
-define('DB_NAME', 'techzone_db');
+// Tự động phát hiện môi trường Local hay Hosting (InfinityFree)
+// Sẽ tự động dùng localhost nếu chạy bằng start.bat, và dùng sql206 nếu đẩy lên InfinityFree.
+if (in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', 'localhost:8000', '127.0.0.1'])) {
+    // Local (XAMPP)
+    define('DB_HOST', 'localhost');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');
+    define('DB_NAME', 'techzone_db');
+} else {
+    // InfinityFree Hosting
+    define('DB_HOST', 'sql206.infinityfree.com');
+    define('DB_USER', 'if0_42297161');
+    define('DB_PASS', 'iyBjXwMhaFRU');
+    define('DB_NAME', 'if0_42297161_techzone');
+}
 define('DB_CHARSET', 'utf8mb4');
 
 define('SITE_NAME', 'TechZone');
