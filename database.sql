@@ -87,7 +87,7 @@ CREATE TABLE `orders` (
   `subtotal` decimal(15,0) NOT NULL DEFAULT 0,
   `shipping_fee` decimal(15,0) NOT NULL DEFAULT 0,
   `total_price` decimal(15,0) NOT NULL DEFAULT 0,
-  `payment_method` enum('qr','cod','momo') NOT NULL DEFAULT 'cod',
+  `payment_method` enum('qr','cod','momo','transfer') NOT NULL DEFAULT 'cod',
   `status` enum('Chờ xử lý','Đang giao','Đã hoàn thành','Đã hủy') NOT NULL DEFAULT 'Chờ xử lý',
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
