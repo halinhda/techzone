@@ -68,6 +68,10 @@ $pdo = getDB();
 // ---- FILTERS ----
 $search = clean($_GET['q'] ?? '');
 $catSlug = clean($_GET['cat'] ?? '');
+$brand = clean($_GET['brand'] ?? '');
+$priceRange = clean($_GET['price_range'] ?? '');
+$sort = clean($_GET['sort'] ?? 'latest');
+
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = 15;
 $offset = ($page - 1) * $perPage;
@@ -88,6 +92,21 @@ if ($catSlug) {
   $params[] = $catSlug;
 }
 
+if ($brand) {
+  $where[] = 'p.brand = ?';
+  $params[] = $brand;
+}
+
+if ($priceRange === 'under_5m') {
+  $where[] = 'p.price < 5000000';
+} elseif ($priceRange === '5m_15m') {
+  $where[] = 'p.price >= 5000000 AND p.price <= 15000000';
+} elseif ($priceRange === '15m_30m') {
+  $where[] = 'p.price >= 15000000 AND p.price <= 30000000';
+} elseif ($priceRange === 'over_30m') {
+  $where[] = 'p.price > 30000000';
+}
+
 $whereSQL = implode(' AND ', $where);
 
 // Total count
@@ -99,19 +118,29 @@ $countStmt->execute($params);
 $totalItems = (int) $countStmt->fetchColumn();
 $totalPages = max(1, ceil($totalItems / $perPage));
 
+// Determine order statement
+$orderSQL = 'p.featured DESC, p.created_at DESC';
+if ($sort === 'price_asc') {
+  $orderSQL = 'p.price ASC';
+} elseif ($sort === 'price_desc') {
+  $orderSQL = 'p.price DESC';
+} elseif ($sort === 'rating_desc') {
+  $orderSQL = 'p.rating DESC';
+}
+
 // Products
 $sql = "SELECT p.*, c.name AS cat_name, c.slug AS cat_slug
         FROM products p
         JOIN categories c ON p.category_id = c.id
         WHERE $whereSQL
-        ORDER BY p.featured DESC, p.created_at DESC
+        ORDER BY $orderSQL
         LIMIT $perPage OFFSET $offset";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $products = $stmt->fetchAll();
 
 // Featured products for carousel
-$featured = $pdo->query("SELECT * FROM products WHERE featured = 1 ORDER BY id LIMIT 5")->fetchAll();
+$featured = $pdo->query("SELECT p.*, c.name AS cat_name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.featured = 1 ORDER BY p.id LIMIT 5")->fetchAll();
 $categories = $pdo->query('SELECT * FROM categories ORDER BY id')->fetchAll();
 $recommended = array_slice($featured, 0, 4);
 
@@ -174,7 +203,7 @@ require_once __DIR__ . '/includes/header.php';
   <div class="mini-card-grid category-showcase-grid">
     <?php foreach (array_slice($categories, 0, 4) as $cat): ?>
       <a class="mini-card category-card" href="/bainhom/index.php?cat=<?= urlencode($cat['slug']) ?>">
-        <span class="mini-card-emoji"><?= clean($cat['icon'] ?: '🛍️') ?></span>
+        <span class="mini-card-emoji"><?= clean($cat['icon'] ?: '') ?></span>
         <strong><?= clean($cat['name']) ?></strong>
         <p>Khám phá các sản phẩm thuộc nhóm <?= clean($cat['name']) ?> phù hợp cho học tập, làm việc và giải trí.</p>
       </a>
@@ -190,34 +219,82 @@ require_once __DIR__ . '/includes/header.php';
     </div>
     <a href="/bainhom/index.php?q=featured" class="text-link">Xem thêm</a>
   </div>
-  <div class="mini-card-grid">
-    <?php foreach ($recommended as $item):
-      $imgSrc = '';
-      if (!empty($item['image_file'])) {
-        $imgSrc = ltrim($item['image_file'], '/');
-        if (strpos($imgSrc, 'assets/images/') === 0) {
-          $imgSrc = substr($imgSrc, strlen('assets/images/'));
-        } elseif (strpos($imgSrc, 'images/') === 0) {
-          $imgSrc = substr($imgSrc, strlen('images/'));
-        }
-        $imgSrc = '/bainhom/assets/images/' . $imgSrc;
-      }
+  <div class="marquee-wrapper" style="overflow: hidden; width: 100%; position: relative; padding-bottom: 20px;">
+    <div class="marquee-track">
+      <?php 
+      $rollItems = array_merge($recommended, $recommended);
+      foreach ($rollItems as $item):
+      $imgSrc = productImageUrl($item['image_file']);
+      $catName = $item['cat_name'] ?? '';
       ?>
-      <article class="mini-card">
-        <div class="mini-card-image-wrap">
-          <?php if (!empty($imgSrc)): ?>
-            <img src="<?= htmlspecialchars($imgSrc, ENT_QUOTES, 'UTF-8') ?>" alt="<?= clean($item['name']) ?>"
-              class="mini-card-image">
-          <?php else: ?>
-            <span class="mini-card-emoji"><?= clean($item['image_emoji']) ?></span>
-          <?php endif; ?>
+      <article class="rec-card">
+        <a href="product_detail.php?id=<?= $item['id'] ?>" class="rec-card-link">
+          <div class="rec-card-thumb">
+            <?php if (!empty($imgSrc)): ?>
+              <img src="<?= htmlspecialchars($imgSrc, ENT_QUOTES, 'UTF-8') ?>" alt="<?= clean($item['name']) ?>">
+            <?php else: ?>
+              <span style="font-size:48px"><?= clean($item['image_emoji']) ?></span>
+            <?php endif; ?>
+            <div class="rec-card-badges">
+              <?php if ($item['featured']): ?>
+                <span class="rec-badge rec-badge-featured">🔥 Hot</span>
+              <?php endif; ?>
+              <?php if ($catName): ?>
+                <span class="rec-badge rec-badge-category"><?= clean($catName) ?></span>
+              <?php endif; ?>
+            </div>
+            <span class="rec-card-rating">⭐ <?= number_format($item['rating'], 1) ?></span>
+          </div>
+          <div class="rec-card-body">
+            <span class="rec-card-brand"><?= clean($item['brand']) ?></span>
+            <h4 class="rec-card-name"><?= clean($item['name']) ?></h4>
+            <p class="rec-card-desc"><?= clean($item['description'] ?? '') ?></p>
+          </div>
+        </a>
+        <div class="rec-card-footer" style="padding: 0 16px 14px;">
+          <span class="rec-card-price"><?= formatVND($item['price']) ?></span>
+          <div class="rec-card-actions">
+            <a href="product_detail.php?id=<?= $item['id'] ?>" class="rec-btn-view" title="Xem chi tiết">
+              <i data-lucide="eye"></i>
+            </a>
+            <?php if ($item['stock'] > 0): ?>
+              <button type="button" class="rec-btn-cart js-add-cart" data-pid="<?= $item['id'] ?>" data-name="<?= clean($item['name']) ?>" title="Thêm vào giỏ">
+                <i data-lucide="shopping-cart"></i> Mua
+              </button>
+            <?php else: ?>
+              <span class="rec-badge" style="background:#f1f5f9;color:#94a3b8;font-size:10px;">Hết hàng</span>
+            <?php endif; ?>
+          </div>
         </div>
-        <strong><?= clean($item['name']) ?></strong>
-        <p><?= clean($item['description'] ?? '') ?></p>
-        <span class="mini-card-price"><?= formatVND($item['price']) ?></span>
       </article>
     <?php endforeach; ?>
+    </div>
   </div>
+
+  <style>
+    .marquee-track {
+      display: flex;
+      gap: 24px;
+      width: max-content;
+      animation: rollMarquee 35s linear infinite;
+      padding: 10px 4px; /* for box-shadow */
+    }
+    .marquee-track:hover {
+      animation-play-state: paused;
+    }
+    .marquee-track .rec-card {
+      width: 280px; /* fixed width for cards in slider */
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%; /* Stretch to same height */
+    }
+    @keyframes rollMarquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(calc(-50% - 12px)); } /* 50% of the total width + half of the gap (24/2=12px) */
+    }
+  </style>
 </section>
 
 <section class="home-panel">
@@ -347,6 +424,58 @@ require_once __DIR__ . '/includes/header.php';
   </div>
 <?php endif; ?>
 
+<!-- FILTER BAR -->
+<form method="GET" action="/bainhom/index.php" class="filter-bar" style="display: flex; gap: 16px; flex-wrap: wrap; background: #fff; padding: 20px 24px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 32px; align-items: flex-end; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-top: 10px;">
+  <!-- Keep existing category & search query if any -->
+  <?php if (!empty($catSlug)): ?>
+    <input type="hidden" name="cat" value="<?= htmlspecialchars($catSlug) ?>">
+  <?php endif; ?>
+  <?php if (!empty($search)): ?>
+    <input type="hidden" name="q" value="<?= htmlspecialchars($search) ?>">
+  <?php endif; ?>
+
+  <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px; min-width: 160px; flex: 1;">
+    <label style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Thương hiệu</label>
+    <select name="brand" class="form-control" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 12px; font-size:14px; color:#1e293b; width: 100%; outline: none;">
+      <option value="">Tất cả thương hiệu</option>
+      <?php
+      $brands = $pdo->query("SELECT DISTINCT brand FROM products WHERE brand IS NOT NULL AND brand != '' ORDER BY brand")->fetchAll(PDO::FETCH_COLUMN);
+      foreach ($brands as $b):
+      ?>
+        <option value="<?= htmlspecialchars($b) ?>" <?= ($brand === $b) ? 'selected' : '' ?>><?= htmlspecialchars($b) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+
+  <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px; min-width: 160px; flex: 1;">
+    <label style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Khoảng giá</label>
+    <select name="price_range" class="form-control" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 12px; font-size:14px; color:#1e293b; width: 100%; outline: none;">
+      <option value="">Tất cả giá</option>
+      <option value="under_5m" <?= ($priceRange === 'under_5m') ? 'selected' : '' ?>>Dưới 5 triệu</option>
+      <option value="5m_15m" <?= ($priceRange === '5m_15m') ? 'selected' : '' ?>>5 triệu - 15 triệu</option>
+      <option value="15m_30m" <?= ($priceRange === '15m_30m') ? 'selected' : '' ?>>15 triệu - 30 triệu</option>
+      <option value="over_30m" <?= ($priceRange === 'over_30m') ? 'selected' : '' ?>>Trên 30 triệu</option>
+    </select>
+  </div>
+
+  <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px; min-width: 160px; flex: 1;">
+    <label style="font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Sắp xếp</label>
+    <select name="sort" class="form-control" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 12px; font-size:14px; color:#1e293b; width: 100%; outline: none;">
+      <option value="latest" <?= ($sort === 'latest') ? 'selected' : '' ?>>Mới nhất</option>
+      <option value="price_asc" <?= ($sort === 'price_asc') ? 'selected' : '' ?>>Giá: Thấp đến cao</option>
+      <option value="price_desc" <?= ($sort === 'price_desc') ? 'selected' : '' ?>>Giá: Cao đến thấp</option>
+      <option value="rating_desc" <?= ($sort === 'rating_desc') ? 'selected' : '' ?>>Đánh giá tốt nhất</option>
+    </select>
+  </div>
+
+  <div class="filter-actions" style="display: flex; gap: 10px; align-items: center;">
+    <button type="submit" class="btn btn-indigo" style="background: #4f46e5; color: #fff; padding: 11px 24px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15); font-size: 14.5px;">
+      <i data-lucide="filter" style="width: 15px; height: 15px;"></i> Lọc
+    </button>
+    <a href="/bainhom/index.php" class="btn btn-outline" style="border: 1.5px solid #cbd5e1; padding: 9px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; color: #475569; display: inline-flex; align-items: center; justify-content: center; font-size: 14.5px;">Reset</a>
+  </div>
+</form>
+
 <!-- PRODUCT GRID -->
 <?php if (empty($products)): ?>
   <div class="empty-state">
@@ -360,16 +489,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="product-grid">
       <?php foreach ($products as $p):
         $oos = $p['stock'] <= 0;
-        $imgSrc = '';
-        if (!empty($p['image_file'])) {
-          $imgSrc = ltrim($p['image_file'], '/');
-          if (strpos($imgSrc, 'assets/images/') === 0) {
-            $imgSrc = substr($imgSrc, strlen('assets/images/'));
-          } elseif (strpos($imgSrc, 'images/') === 0) {
-            $imgSrc = substr($imgSrc, strlen('images/'));
-          }
-          $imgSrc = '/bainhom/assets/images/' . $imgSrc;
-        }
+        $imgSrc = productImageUrl($p['image_file'] ?? '');
         ?>
         <div class="product-card" data-pid="<?= (int) $p['id'] ?>"
           data-name="<?= htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8') ?>"
@@ -378,6 +498,7 @@ require_once __DIR__ . '/includes/header.php';
           data-image="<?= htmlspecialchars($imgSrc, ENT_QUOTES, 'UTF-8') ?>"
           data-rating="<?= number_format($p['rating'], 1) ?>">
           <div class="product-thumb">
+            <span class="product-cat-badge"><?= clean($p['cat_name'] ?? '') ?></span>
             <?php if (!empty($imgSrc)): ?>
               <img src="<?= htmlspecialchars($imgSrc, ENT_QUOTES, 'UTF-8') ?>" alt="<?= clean($p['name']) ?>"
                 class="product-image">
@@ -398,9 +519,8 @@ require_once __DIR__ . '/includes/header.php';
             <p class="product-desc"><?= clean($p['description'] ?? '') ?></p>
             <div class="product-footer">
               <span class="product-price"><?= formatVND($p['price']) ?></span>
-              <a href="product_detail.php?id=<?= $p['id'] ?>"
-                style="margin-right: 10px; font-size: 13px; color: #666; text-decoration: underline;">
-                Xem chi tiết
+              <a href="product_detail.php?id=<?= $p['id'] ?>" class="product-view-link" onclick="event.stopPropagation()">
+                Xem chi tiết <i data-lucide="arrow-right"></i>
               </a>
               <?php if (!$oos): ?>
                 <button class="btn btn-outline btn-sm js-add-cart" data-pid="<?= $p['id'] ?>"
@@ -567,4 +687,3 @@ require_once __DIR__ . '/includes/header.php';
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
-?>

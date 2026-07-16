@@ -53,7 +53,6 @@ if ($action === 'add') {
     } else {
         $pdo->prepare('INSERT INTO cart_items (session_id, user_id, product_id, quantity) VALUES (?, ?, ?, 1)')->execute([$sid, $userId, $productId]);
     }
-    updateStock($pdo, $productId, -1); // Trừ 1 khi thêm vào giỏ
 }
 
 if ($action === 'update') {
@@ -69,10 +68,8 @@ if ($action === 'update') {
 
     if ($newQty <= 0) {
         $pdo->prepare('DELETE FROM cart_items WHERE session_id = ? AND product_id = ?')->execute([$sid, $productId]);
-        updateStock($pdo, $productId, $currentQty); // Cộng lại toàn bộ số lượng đã bỏ giỏ
     } else {
         $pdo->prepare('UPDATE cart_items SET quantity = ? WHERE session_id = ? AND product_id = ?')->execute([$newQty, $sid, $productId]);
-        updateStock($pdo, $productId, -$delta); // Trừ dựa trên số lượng thay đổi (delta)
     }
 }
 
@@ -82,7 +79,6 @@ if ($action === 'remove') {
     $qty = (int) $stmt->fetchColumn();
 
     $pdo->prepare('DELETE FROM cart_items WHERE session_id = ? AND product_id = ?')->execute([$sid, $productId]);
-    updateStock($pdo, $productId, $qty); // Cộng lại số lượng vào tồn kho
 }
 
 $countStmt = $pdo->prepare('SELECT COALESCE(SUM(quantity),0) FROM cart_items WHERE session_id = ?');

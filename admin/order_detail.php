@@ -47,38 +47,40 @@ require_once __DIR__ . '/admin_layout.php';
                 <h3 class="card-title">Sản phẩm đặt mua</h3>
             </div>
             <div class="card-body" style="padding:0;">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th>Đơn giá</th>
-                            <th>SL</th>
-                            <th style="text-align:right;">Thành tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($items as $item): ?>
+                <div class="table-container orders-table-wrap">
+                    <table class="data-table">
+                        <thead>
                             <tr>
-                                <td>
-                                    <div class="product-cell">
-                                        <?php if (!empty($item['image_file'])): ?>
-                                            <img src="/bainhom/assets/images/<?= htmlspecialchars($item['image_file']) ?>" class="product-thumb">
-                                        <?php else: ?>
-                                            <div class="product-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;"><?= $item['image_emoji'] ?></div>
-                                        <?php endif; ?>
-                                        <div>
-                                            <div class="product-cell-name"><?= htmlspecialchars($item['name']) ?></div>
-                                            <div class="product-cell-brand"><?= htmlspecialchars($item['brand'] ?? '—') ?></div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td><?= number_format($item['price'], 0, ',', '.') ?>đ</td>
-                                <td><?= $item['quantity'] ?></td>
-                                <td style="text-align:right;font-weight:700;"><?= number_format($item['price'] * $item['quantity'], 0, ',', '.') ?>đ</td>
+                                <th>Sản phẩm</th>
+                                <th>Đơn giá</th>
+                                <th>SL</th>
+                                <th>Thành tiền</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($items as $item): ?>
+                                <tr>
+                                    <td data-label="Sản phẩm">
+                                        <div class="product-cell">
+                                            <?php if (!empty($item['image_file'])): ?>
+                                                <img src="/bainhom/assets/images/<?= htmlspecialchars($item['image_file']) ?>" class="product-thumb">
+                                            <?php else: ?>
+                                                <div class="product-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;"><?= $item['image_emoji'] ?></div>
+                                            <?php endif; ?>
+                                            <div>
+                                                <div class="product-cell-name"><?= htmlspecialchars($item['name']) ?></div>
+                                                <div class="product-cell-brand"><?= htmlspecialchars($item['brand'] ?? '—') ?></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td data-label="Đơn giá"><?= number_format($item['price'], 0, ',', '.') ?>đ</td>
+                                    <td data-label="SL"><?= $item['quantity'] ?></td>
+                                    <td data-label="Thành tiền" style="font-weight:700;"><?= number_format($item['price'] * $item['quantity'], 0, ',', '.') ?>đ</td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
                 
                 <div style="padding:20px 24px;background:#f8fafc;border-top:1px solid var(--border);text-align:right;">
                     <div style="margin-bottom:8px;color:var(--text-sub);">Tạm tính: <?= number_format($order['subtotal'], 0, ',', '.') ?>đ</div>

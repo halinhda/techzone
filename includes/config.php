@@ -2,13 +2,15 @@
 // ================================================================
 // TECHZONE – Cấu hình kết nối Database & hằng số hệ thống
 // ================================================================
+date_default_timezone_set('Asia/Ho_Chi_Minh');
+
 // Định nghĩa số điện thoại là một hằng số
 define('HOTLINE', '0909 123 456');
 
 
 // Tự động phát hiện môi trường Local hay Hosting (InfinityFree)
 // Sẽ tự động dùng localhost nếu chạy bằng start.bat, và dùng sql206 nếu đẩy lên InfinityFree.
-if (in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', 'localhost:8000', '127.0.0.1'])) {
+if (empty($_SERVER['HTTP_HOST']) || in_array($_SERVER['HTTP_HOST'], ['localhost', 'localhost:8000', '127.0.0.1'])) {
     // Local (XAMPP)
     define('DB_HOST', 'localhost');
     define('DB_USER', 'root');
@@ -16,10 +18,10 @@ if (in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', 'localhost:8000', '127.0
     define('DB_NAME', 'techzone_db');
 } else {
     // InfinityFree Hosting
-    define('DB_HOST', 'sql206.infinityfree.com');
-    define('DB_USER', 'if0_42297161');
-    define('DB_PASS', 'iyBjXwMhaFRU');
-    define('DB_NAME', 'if0_42297161_techzone');
+    define('DB_HOST', getenv('DB_HOST') ?: 'sql206.infinityfree.com');
+    define('DB_USER', getenv('DB_USER') ?: 'if0_42297161');
+    define('DB_PASS', getenv('DB_PASS') ?: 'iyBjXwMhaFRU');
+    define('DB_NAME', getenv('DB_NAME') ?: 'if0_42297161_techzone');
 }
 define('DB_CHARSET', 'utf8mb4');
 
@@ -57,6 +59,11 @@ if (session_status() === PHP_SESSION_NONE) {
     ]);
     session_start();
 }
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+require_once __DIR__ . '/social_auth.php';
 
 // ---- Helpers ---- //
 
@@ -110,4 +117,16 @@ function cartSessionId(): string {
         $_SESSION['cart_sid'] = bin2hex(random_bytes(16));
     }
     return $_SESSION['cart_sid'];
+}
+
+/** Chuẩn hóa đường dẫn ảnh sản phẩm */
+function productImageUrl(string $file): string {
+    if (empty($file)) return '';
+    $path = ltrim($file, '/');
+    if (str_starts_with($path, 'assets/images/')) {
+        $path = substr($path, strlen('assets/images/'));
+    } elseif (str_starts_with($path, 'images/')) {
+        $path = substr($path, strlen('images/'));
+    }
+    return '/bainhom/assets/images/' . $path;
 }

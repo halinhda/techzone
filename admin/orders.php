@@ -57,7 +57,7 @@ require_once __DIR__ . '/admin_layout.php';
 <!-- Table -->
 <div class="card">
     <div class="card-body" style="padding:0;">
-        <div class="table-container">
+        <div class="table-container orders-table-wrap">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -84,13 +84,13 @@ require_once __DIR__ . '/admin_layout.php';
                         };
                     ?>
                         <tr>
-                            <td><strong><?= htmlspecialchars($order['order_code']) ?></strong></td>
-                            <td><?= htmlspecialchars($order['customer_name']) ?></td>
-                            <td><?= htmlspecialchars($order['customer_phone']) ?></td>
-                            <td><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></td>
-                            <td class="price"><?= number_format($order['total_price'], 0, ',', '.') ?>đ</td>
-                            <td><span class="badge <?= $statusClass ?>"><?= $order['status'] ?></span></td>
-                            <td>
+                            <td data-label="Mã ĐH"><strong><?= htmlspecialchars($order['order_code']) ?></strong></td>
+                            <td data-label="Khách hàng"><?= htmlspecialchars($order['customer_name']) ?></td>
+                            <td data-label="Số ĐT"><?= htmlspecialchars($order['customer_phone']) ?></td>
+                            <td data-label="Ngày đặt"><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></td>
+                            <td data-label="Tổng tiền" class="price"><?= number_format($order['total_price'], 0, ',', '.') ?>đ</td>
+                            <td data-label="Trạng thái"><span class="badge <?= $statusClass ?>"><?= $order['status'] ?></span></td>
+                            <td data-label="Hành động">
                                 <a href="order_detail.php?id=<?= $order['id'] ?>" class="btn btn-outline btn-sm">Xem / Xử lý</a>
                             </td>
                         </tr>

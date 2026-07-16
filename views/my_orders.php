@@ -23,113 +23,74 @@ $stmt = $pdo->prepare("
 
 $stmt->execute([$userId]);
 $orders = $stmt->fetchAll();
+
+// Ánh xạ trạng thái
+$statusClasses = [
+    'Chờ xử lý' => 'pending',
+    'Đang giao' => 'shipping',
+    'Đã hoàn thành' => 'completed',
+    'Đã hủy' => 'cancelled',
+];
 ?>
 
-<style>
-    .orders-container {
-        max-width: 900px;
-        margin: 40px auto;
-        padding: 20px;
-    }
+<div class="orders-page">
+    <div class="section-header">
+        <div>
+            <p class="eyebrow">Tài khoản</p>
+            <h1 class="section-title">
+                <i data-lucide="package"></i>
+                Đơn hàng của tôi
+            </h1>
+        </div>
+        <span class="results-count"><?= count($orders) ?> đơn hàng</span>
+    </div>
 
-    .order-table {
-        width: 100%;
-        border-collapse: collapse;
-        background: #fff;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .order-table th {
-        background: #f4f4f4;
-        padding: 15px;
-        text-align: left;
-    }
-
-    .order-table td {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
-    }
-
-    /* Các class trạng thái */
-    .status-pending {
-        color: #d97706;
-        font-weight: bold;
-    }
-
-    /* Vàng/Cam */
-    .status-shipping {
-        color: #3b82f6;
-        font-weight: bold;
-    }
-
-    /* Xanh dương */
-    .status-completed {
-        color: #10b981;
-        font-weight: bold;
-    }
-
-    /* Xanh lá */
-    .status-cancelled {
-        color: #ef4444;
-        font-weight: bold;
-    }
-
-    /* Đỏ */
-
-    .btn-detail {
-        padding: 8px 15px;
-        background: #6366f1;
-        color: white;
-        border-radius: 5px;
-        text-decoration: none;
-        font-size: 14px;
-    }
-</style>
-
-<div class="orders-container">
-    <h1>Đơn hàng của tôi</h1>
-    <table class="order-table">
-        <thead>
-            <tr>
-                <th>Mã đơn</th>
-                <th>Tổng tiền</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($orders)): ?>
-                <tr>
-                    <td colspan="4" style="text-align:center;">Bạn chưa có đơn hàng nào.</td>
-                </tr>
-            <?php else: ?>
-                <?php
-                // Định nghĩa ánh xạ trạng thái sang class (Điều chỉnh key theo đúng dữ liệu trong DB của bạn)
-                $statusClasses = [
-                    'Chờ xử lý' => 'status-pending',
-                    'Đang giao' => 'status-shipping',
-                    'Đã hoàn thành' => 'status-completed',
-                    'Đã hủy' => 'status-cancelled',
-                ];
-                ?>
-                <?php foreach ($orders as $order): ?>
-                    <?php
-                    $status = $order['status'];
-                    // Lấy class tương ứng, mặc định là status-pending nếu không tìm thấy
-                    $cssClass = $statusClasses[$status] ?? 'status-pending';
-                    ?>
+    <?php if (empty($orders)): ?>
+        <div class="empty-state">
+            <span class="icon"></span>
+            <h4>Chưa có đơn hàng nào</h4>
+            <p>Bạn chưa đặt đơn hàng nào. Hãy khám phá cửa hàng và mua sắm ngay!</p>
+            <a href="/bainhom/index.php" class="btn btn-primary">
+                <i data-lucide="shopping-bag"></i> Mua sắm ngay
+            </a>
+        </div>
+    <?php else: ?>
+        <div class="orders-table-wrap">
+            <table>
+                <thead>
                     <tr>
-                        <td><?= htmlspecialchars($order['order_code']) ?></td>
-                        <td><?= number_format($order['total_price'], 0, ',', '.') ?> đ</td>
-                        <td><span class="<?= $cssClass ?>"><?= htmlspecialchars($status) ?></span></td>
-                        <td><a href="order_detail.php?id=<?= $order['id'] ?>" class="btn-detail">Xem chi tiết</a></td>
+                        <th>Mã đơn</th>
+                        <th>Tổng tiền</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày đặt</th>
+                        <th>Thao tác</th>
                     </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+                </thead>
+                <tbody>
+                    <?php foreach ($orders as $order):
+                        $status = $order['status'];
+                        $cssClass = $statusClasses[$status] ?? 'pending';
+                    ?>
+                        <tr>
+                            <td data-label="Mã đơn" class="order-code-cell"><?= htmlspecialchars($order['order_code']) ?></td>
+                            <td data-label="Tổng tiền" class="order-price-cell"><?= number_format($order['total_price'], 0, ',', '.') ?> đ</td>
+                            <td data-label="Trạng thái">
+                                <span class="order-status-badge <?= $cssClass ?>"><?= htmlspecialchars($status) ?></span>
+                            </td>
+                            <td data-label="Ngày đặt" style="font-size:12px;color:#64748b;">
+                                <?= isset($order['created_at']) ? date('d/m/Y H:i', strtotime($order['created_at'])) : '—' ?>
+                            </td>
+                            <td data-label="Thao tác">
+                                <a href="order_detail.php?id=<?= $order['id'] ?>" class="btn-view-order">
+                                    <i data-lucide="eye" style="width:14px;height:14px;"></i> Chi tiết
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

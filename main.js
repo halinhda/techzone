@@ -49,6 +49,9 @@ document.querySelectorAll('.js-add-cart').forEach(btn => {
           cartLink.appendChild(b);
         }
       }
+      // Update bottom nav badge
+      const bottomBadge = document.querySelector('.bottom-nav-badge');
+      if (bottomBadge) bottomBadge.textContent = data.cart_count;
     } else {
       showToast(data.message || 'Lỗi!', 'error');
     }
@@ -87,7 +90,6 @@ document.querySelectorAll('.js-remove-cart').forEach(btn => {
 });
 
 /* ---- CAROUSEL ---- */
-/* ---- CAROUSEL ---- */
 (function () {
   const wrapper = document.getElementById('carousel-wrapper');
   if (!wrapper) return;
@@ -121,13 +123,13 @@ document.querySelectorAll('.js-remove-cart').forEach(btn => {
   }
 
   // Khi click, PHẢI clear timer cũ và tạo timer mới
-  wrapper.querySelector('.carousel-nav.prev').addEventListener('click', () => {
+  wrapper.querySelector('.carousel-nav.prev')?.addEventListener('click', () => {
     clearInterval(timer);
     goTo(current - 1);
     startTimer();
   });
 
-  wrapper.querySelector('.carousel-nav.next').addEventListener('click', () => {
+  wrapper.querySelector('.carousel-nav.next')?.addEventListener('click', () => {
     clearInterval(timer);
     goTo(current + 1);
     startTimer();
@@ -271,3 +273,216 @@ window.updateOrderStatus = async function (orderId, status, btn) {
   if (data.success) { showToast('Cập nhật trạng thái thành công!'); setTimeout(() => location.reload(), 800); }
   else { showToast(data.message || 'Lỗi!', 'error'); btn.disabled = false; }
 };
+
+/* ================================================================
+   MOBILE UI ENHANCEMENTS
+   ================================================================ */
+
+/* ---- HAMBURGER MENU TOGGLE ---- */
+(function () {
+  const btn = document.getElementById('hamburger-toggle');
+  const drawer = document.getElementById('mobile-nav-drawer');
+  const overlay = document.getElementById('mobile-nav-overlay');
+  const closeBtn = document.getElementById('mobile-nav-close');
+
+  if (!btn || !drawer || !overlay) return;
+
+  function openNav() {
+    drawer.classList.add('open');
+    overlay.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeNav() {
+    drawer.classList.remove('open');
+    overlay.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  btn.addEventListener('click', openNav);
+  overlay.addEventListener('click', closeNav);
+  if (closeBtn) closeBtn.addEventListener('click', closeNav);
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drawer.classList.contains('open')) closeNav();
+  });
+})();
+
+/* ---- MOBILE SEARCH TOGGLE ---- */
+(function () {
+  const btn = document.getElementById('mobile-search-toggle');
+  const bar = document.getElementById('mobile-search-bar');
+  if (!btn || !bar) return;
+
+  btn.addEventListener('click', () => {
+    bar.classList.toggle('open');
+    if (bar.classList.contains('open')) {
+      const input = bar.querySelector('input');
+      if (input) input.focus();
+    }
+  });
+})();
+
+/* ---- PASSWORD VISIBILITY TOGGLE ---- */
+document.querySelectorAll('.password-toggle').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const targetId = this.dataset.target;
+    const input = document.getElementById(targetId);
+    if (!input) return;
+
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+
+    // Swap icon
+    const icon = this.querySelector('[data-lucide]');
+    if (icon) {
+      icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+      if (window.lucide) lucide.createIcons();
+    }
+  });
+});
+
+/* ---- ADMIN SIDEBAR TOGGLE (Mobile) ---- */
+(function () {
+  const btn = document.getElementById('admin-hamburger');
+  const sidebar = document.querySelector('.admin-sidebar');
+  const backdrop = document.getElementById('admin-sidebar-backdrop');
+
+  if (!btn || !sidebar) return;
+
+  function toggle() {
+    sidebar.classList.toggle('open');
+    if (backdrop) backdrop.classList.toggle('open');
+    document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+  }
+
+  btn.addEventListener('click', toggle);
+  if (backdrop) backdrop.addEventListener('click', toggle);
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) toggle();
+  });
+})();
+
+/* ================================================================
+   SMOOTH PAGE TRANSITIONS
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Apply enter animation class when DOM is ready
+  document.body.classList.add('page-enter');
+  
+  // Cleanup animation classes after it finishes
+  setTimeout(() => {
+    document.body.classList.remove('page-enter');
+  }, 400);
+});
+
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('a');
+  if (!link) return;
+
+  // Validate internal link
+  const isInternal = link.host === window.location.host;
+  const isHash = link.hash && link.pathname === window.location.pathname;
+  const isNewTab = link.target === '_blank';
+  const isDownload = link.hasAttribute('download');
+  const hasModifier = e.ctrlKey || e.metaKey || e.shiftKey || e.altKey;
+  const isJsAction = link.href.startsWith('javascript:');
+
+  if (isInternal && !isHash && !isNewTab && !isDownload && !hasModifier && !isJsAction) {
+    e.preventDefault();
+    const targetUrl = link.href;
+
+    // Trigger exit animation
+    document.body.classList.add('page-leave');
+
+    // Navigate just before the animation fully completes for a snappy feel
+    setTimeout(() => {
+      window.location.href = targetUrl;
+    }, 220); 
+  }
+});
+
+// Handle Safari/BFCache back/forward button restores
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) {
+    document.body.classList.remove('page-leave');
+    document.body.classList.add('page-enter');
+    setTimeout(() => {
+      document.body.classList.remove('page-enter');
+    }, 400);
+  }
+});
+
+/* ---- AJAX LIVE SEARCH ---- */
+document.addEventListener('DOMContentLoaded', () => {
+  const initLiveSearch = (inputId, suggestionsId) => {
+    const input = document.getElementById(inputId);
+    const suggestions = document.getElementById(suggestionsId);
+    if (!input || !suggestions) return;
+
+    let debounceTimer;
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const query = input.value.trim();
+
+      if (query.length < 2) {
+        suggestions.innerHTML = '';
+        suggestions.style.display = 'none';
+        return;
+      }
+
+      debounceTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/bainhom/api/search.php?q=${encodeURIComponent(query)}`);
+          const products = await res.json();
+
+          if (products.length === 0) {
+            suggestions.innerHTML = `
+              <div style="padding: 14px; text-align: center; color: #94a3b8; font-size: 13.5px;">
+                Không tìm thấy kết quả nào
+              </div>
+            `;
+          } else {
+            suggestions.innerHTML = products.map(p => `
+              <a href="/bainhom/product_detail.php?id=${p.id}" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; text-decoration: none; transition: background 0.15s ease;">
+                <div style="width: 38px; height: 38px; background: #f8fafc; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">
+                  ${p.image_url ? `<img src="${p.image_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" alt="${p.name}">` : p.image_emoji}
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <strong style="font-size: 13.5px; color: #0f172a; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700;">${p.name}</strong>
+                  <span style="font-size: 11px; color: #64748b;">${p.brand}</span>
+                </div>
+                <span style="font-size: 13.5px; font-weight: 800; color: #dc2626; white-space: nowrap;">${p.price_formatted}</span>
+              </a>
+            `).join('');
+
+            // Hover effect on items
+            suggestions.querySelectorAll('a').forEach(item => {
+              item.addEventListener('mouseenter', () => item.style.backgroundColor = '#f8fafc');
+              item.addEventListener('mouseleave', () => item.style.backgroundColor = 'transparent');
+            });
+          }
+          suggestions.style.display = 'block';
+        } catch (error) {
+          console.error('Lỗi search:', error);
+        }
+      }, 300);
+    });
+
+    // Close suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+        suggestions.style.display = 'none';
+      }
+    });
+  };
+
+  initLiveSearch('search-input', 'search-suggestions');
+  initLiveSearch('mobile-search-input', 'mobile-search-suggestions');
+});

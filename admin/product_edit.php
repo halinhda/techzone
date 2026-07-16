@@ -31,6 +31,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $desc = trim($_POST['description'] ?? '');
     $category_id = (int)($_POST['category_id'] ?? 0);
     $featured = isset($_POST['featured']) ? 1 : 0;
+    
+    // Xử lý cấu hình chi tiết (specifications)
+    $specifications = null;
+    if (isset($_POST['spec_keys']) && isset($_POST['spec_vals']) && is_array($_POST['spec_keys'])) {
+        $specsArray = [];
+        for ($i = 0; $i < count($_POST['spec_keys']); $i++) {
+            $k = trim($_POST['spec_keys'][$i]);
+            $v = trim($_POST['spec_vals'][$i]);
+            if ($k !== '' && $v !== '') {
+                $specsArray[$k] = $v;
+            }
+        }
+        if (!empty($specsArray)) {
+            $specifications = json_encode($specsArray, JSON_UNESCAPED_UNICODE);
+        }
+    }
 
     if ($name === '' || $price <= 0) {
         $error = 'Vui lòng nhập tên và giá hợp lệ.';
@@ -47,9 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         try {
-            $sql = "UPDATE products SET name=?, price=?, brand=?, stock=?, description=?, image_file=?, category_id=?, featured=? WHERE id=?";
+            $sql = "UPDATE products SET name=?, price=?, brand=?, stock=?, description=?, image_file=?, category_id=?, featured=?, specifications=? WHERE id=?";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([$name, $price, $brand, $stock, $desc, $imagePath, $category_id, $featured, $id]);
+            $stmt->execute([$name, $price, $brand, $stock, $desc, $imagePath, $category_id, $featured, $specifications, $id]);
 
             header('Location: products.php');
             exit;
@@ -126,6 +142,14 @@ require_once __DIR__ . '/admin_layout.php';
             </div>
 
             <div class="form-group">
+                <label class="form-label">Cấu hình chi tiết (Thông số kỹ thuật)</label>
+                <div id="specs-container">
+                    <!-- JS sẽ render các hàng thông số ở đây -->
+                </div>
+                <button type="button" class="btn btn-outline" id="add-spec-btn" style="margin-top:8px;font-size:14px;padding:6px 12px;">+ Thêm thông số</button>
+            </div>
+
+            <div class="form-group">
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                     <input type="checkbox" name="featured" value="1" <?= $product['featured'] ? 'checked' : '' ?>>
                     <span class="form-label" style="margin:0;">⭐ Sản phẩm nổi bật</span>
@@ -139,5 +163,57 @@ require_once __DIR__ . '/admin_layout.php';
         </form>
     </div>
 </div>
+
+<?php 
+$existingSpecs = [];
+if (!empty($product['specifications'])) {
+    $decoded = json_decode($product['specifications'], true);
+    if (is_array($decoded)) {
+        $existingSpecs = $decoded;
+    }
+}
+?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const specsContainer = document.getElementById('specs-container');
+    const addSpecBtn = document.getElementById('add-spec-btn');
+    
+    // Pass existing specs from PHP
+    const existingSpecs = <?= json_encode($existingSpecs, JSON_UNESCAPED_UNICODE) ?>;
+
+    function createSpecRow(key = '', val = '') {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.marginBottom = '8px';
+        
+        row.innerHTML = `
+            <input type="text" name="spec_keys[]" class="form-control" placeholder="Tên thông số (VD: CPU)" value="${key.replace(/"/g, '&quot;')}" style="flex:1;">
+            <input type="text" name="spec_vals[]" class="form-control" placeholder="Giá trị (VD: Apple M2)" value="${val.replace(/"/g, '&quot;')}" style="flex:2;">
+            <button type="button" class="btn btn-outline remove-spec-btn" style="padding:0 12px;color:#ef4444;border-color:#ef4444;">X</button>
+        `;
+        
+        row.querySelector('.remove-spec-btn').addEventListener('click', () => {
+            row.remove();
+        });
+        
+        specsContainer.appendChild(row);
+    }
+
+    addSpecBtn.addEventListener('click', () => createSpecRow());
+    
+    // Initialize rows
+    let hasSpecs = false;
+    for (const [k, v] of Object.entries(existingSpecs)) {
+        createSpecRow(k, v);
+        hasSpecs = true;
+    }
+    
+    // Add one empty row if no specs exist
+    if (!hasSpecs) {
+        createSpecRow();
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/admin_footer.php'; ?>

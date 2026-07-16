@@ -84,7 +84,7 @@ try {
         $tickets = $pdo->query("SELECT * FROM support_tickets ORDER BY id DESC")->fetchAll();
     } else {
         $user_id = $_SESSION['user']['id'] ?? null;
-        $user_name = $_SESSION['user']['name'] ?? '';
+        $user_name = $_SESSION['user']['fullname'] ?? '';
 
         if ($user_id !== null) {
             $stmt = $pdo->prepare("SELECT * FROM support_tickets WHERE user_id = :user_id ORDER BY id DESC");
@@ -337,7 +337,7 @@ tr:hover td { background-color: #fafafa; }
 
 <?php if (!$isAdmin): ?>
     <div class="support-header">
-        <h1>💬 Trung tâm Hỗ trợ</h1>
+        <h1>Trung tâm Hỗ trợ</h1>
         <p>Gửi câu hỏi hoặc báo cáo lỗi, chúng tôi sẽ phản hồi bạn trong thời gian sớm nhất.</p>
     </div>
         
@@ -347,28 +347,28 @@ tr:hover td { background-color: #fafafa; }
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>👤 Họ và tên</label>
-                    <input type="text" name="name" required value="<?= htmlspecialchars($_SESSION['user']['name'] ?? '') ?>" placeholder="Nhập tên của bạn">
+                    <label>Họ và tên</label>
+                    <input type="text" name="name" required value="<?= htmlspecialchars($_SESSION['user']['fullname'] ?? '') ?>" placeholder="Nhập tên của bạn">
                 </div>
 
                 <div class="form-group">
-                    <label>📌 Tiêu đề yêu cầu</label>
+                    <label>Tiêu đề yêu cầu</label>
                     <input type="text" name="subject" required placeholder="Vấn đề cần giải quyết...">
                 </div>
             </div>
 
             <div class="form-group full-width">
-                <label>✉️ Nội dung chi tiết</label>
+                <label>Nội dung chi tiết</label>
                 <textarea name="message" rows="4" required placeholder="Vui lòng cung cấp chi tiết lỗi hoặc câu hỏi để hệ thống hỗ trợ nhanh nhất..."></textarea>
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn-submit">🚀 Gửi yêu cầu hỗ trợ</button>
+                <button type="submit" class="btn-submit">Gửi yêu cầu hỗ trợ</button>
             </div>
         </form>
     </div>
 
-    <div class="section-title">📜 Yêu cầu đã gửi gần đây</div>
+    <div class="section-title">Yêu cầu đã gửi gần đây</div>
     <div class="ticket-list">
         <?php if (empty($tickets)): ?>
             <div style="text-align:center; color: var(--text-muted); padding: 40px; background: #fff; border-radius: 16px; border: 1px solid var(--border);">
@@ -378,11 +378,11 @@ tr:hover td { background-color: #fafafa; }
             <?php foreach ($tickets as $t): ?>
             <div class="ticket-item">
                 <div class="ticket-top">
-                    <h3 class="ticket-title">📄 <?= htmlspecialchars($t['subject'] ?? '') ?></h3>
+                    <h3 class="ticket-title"><?= htmlspecialchars($t['subject'] ?? '') ?></h3>
                     <?php if (($t['status'] ?? 'open') === 'resolved'): ?>
-                        <span class="badge badge-resolved">✨ Đã trả lời</span>
+                        <span class="badge badge-resolved">Đã trả lời</span>
                     <?php else: ?>
-                        <span class="badge badge-open">⏳ Đang chờ xử lý</span>
+                        <span class="badge badge-open">Đang chờ xử lý</span>
                     <?php endif; ?>
                 </div>
                 
@@ -390,12 +390,12 @@ tr:hover td { background-color: #fafafa; }
                 
                 <?php if (!empty($t['reply'])): ?>
                     <div class="admin-reply-card">
-                        <p><strong style="color: var(--primary); display: block; margin-bottom: 4px; font-size: 13px;">🛡️ Ban quản trị phản hồi:</strong>
+                        <p><strong style="color: var(--primary); display: block; margin-bottom: 4px; font-size: 13px;">Ban quản trị phản hồi:</strong>
                         <?= nl2br(htmlspecialchars($t['reply'])) ?></p>
                     </div>
                 <?php else: ?>
                     <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                        <span>⚙️</span> Đội ngũ đang tiếp nhận & xử lý yêu cầu của bạn...
+                        Đội ngũ đang tiếp nhận & xử lý yêu cầu của bạn...
                     </div>
                 <?php endif; ?>
             </div>
@@ -405,7 +405,7 @@ tr:hover td { background-color: #fafafa; }
 
 <?php else: ?>
     <div class="support-header">
-        <h1>🛠️ Quản lý hỗ trợ (Admin)</h1>
+        <h1>Quản lý hỗ trợ (Admin)</h1>
         <p>Xem, quản lý và xử lý phản hồi từ khách hàng trên toàn hệ thống.</p>
     </div>
 
@@ -423,25 +423,25 @@ tr:hover td { background-color: #fafafa; }
             </thead>
             <tbody>
                 <?php if (empty($tickets)): ?>
-                    <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 40px;">🎉 Tuyệt vời! Hiện tại không có yêu cầu nào cần xử lý.</td></tr>
+                    <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 40px;">Tuyệt vời! Hiện tại không có yêu cầu nào cần xử lý.</td></tr>
                 <?php else: ?>
                     <?php foreach ($tickets as $t): ?>
                     <tr>
                         <td><code>#<?= $t['id'] ?></code></td>
-                        <td><strong>👤 <?= htmlspecialchars($t['user_name'] ?? 'Ẩn danh') ?></strong></td>
+                        <td><strong><?= htmlspecialchars($t['user_name'] ?? 'Ẩn danh') ?></strong></td>
                         <td><strong><?= htmlspecialchars($t['subject'] ?? '') ?></strong></td>
                         <td style="white-space: pre-line; color: var(--text-body); font-size: 13.5px;"><?= htmlspecialchars($t['message'] ?? '') ?></td>
                         <td>
                             <?php if (($t['status'] ?? 'open') === 'resolved'): ?>
-                                <span class="badge badge-resolved">🟢 Đã phản hồi</span>
+                                <span class="badge badge-resolved">Đã phản hồi</span>
                             <?php else: ?>
-                                <span class="badge badge-open">🟡 Chờ duyệt</span>
+                                <span class="badge badge-open">Chờ duyệt</span>
                             <?php endif; ?>
                         </td>
                         <td>
                             <?php if (!empty($t['reply'])): ?>
                                 <div class="admin-reply-card" style="margin-bottom: 8px; background: #ecfdf5; border-left-color: #10b981; padding: 8px 12px;">
-                                    <strong style="font-size:12px; color:#15803d">💬 Cũ:</strong> <span style="font-size:13px; color: #1e293b;"><?= htmlspecialchars($t['reply']) ?></span>
+                                    <strong style="font-size:12px; color:#15803d">Cũ:</strong> <span style="font-size:13px; color: #1e293b;"><?= htmlspecialchars($t['reply']) ?></span>
                                 </div>
                             <?php endif; ?>
                             

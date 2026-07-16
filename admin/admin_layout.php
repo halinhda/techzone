@@ -20,14 +20,14 @@ $pageTitle = $pageTitle ?? 'Admin Panel';
 $currentPage = $currentPage ?? '';
 
 $menuItems = [
-    ['key' => 'dashboard',  'icon' => '📊', 'label' => 'Dashboard',     'url' => '/bainhom/admin/index.php'],
-    ['key' => 'products',   'icon' => '📦', 'label' => 'Sản phẩm',     'url' => '/bainhom/admin/products.php'],
-    ['key' => 'categories', 'icon' => '📁', 'label' => 'Danh mục',     'url' => '/bainhom/admin/categories.php'],
-    ['key' => 'orders',     'icon' => '📋', 'label' => 'Đơn hàng',     'url' => '/bainhom/admin/orders.php'],
-    ['key' => 'users',      'icon' => '👥', 'label' => 'Khách hàng',   'url' => '/bainhom/admin/users.php'],
-    ['key' => 'reviews',    'icon' => '⭐', 'label' => 'Đánh giá',     'url' => '/bainhom/admin/reviews.php'],
-    ['key' => 'tickets',    'icon' => '🎫', 'label' => 'Hỗ trợ',       'url' => '/bainhom/admin/tickets.php'],
-    ['key' => 'reports',    'icon' => '📈', 'label' => 'Báo cáo',      'url' => '/bainhom/admin/reports.php'],
+    ['key' => 'dashboard',  'icon' => '', 'label' => 'Dashboard',     'url' => '/bainhom/admin/index.php'],
+    ['key' => 'products',   'icon' => '', 'label' => 'Sản phẩm',     'url' => '/bainhom/admin/products.php'],
+    ['key' => 'categories', 'icon' => '', 'label' => 'Danh mục',     'url' => '/bainhom/admin/categories.php'],
+    ['key' => 'orders',     'icon' => '', 'label' => 'Đơn hàng',     'url' => '/bainhom/admin/orders.php'],
+    ['key' => 'users',      'icon' => '', 'label' => 'Khách hàng',   'url' => '/bainhom/admin/users.php'],
+    ['key' => 'reviews',    'icon' => '', 'label' => 'Đánh giá',     'url' => '/bainhom/admin/reviews.php'],
+    ['key' => 'tickets',    'icon' => '', 'label' => 'Hỗ trợ',       'url' => '/bainhom/admin/tickets.php'],
+    ['key' => 'reports',    'icon' => '', 'label' => 'Báo cáo',      'url' => '/bainhom/admin/reports.php'],
 ];
 ?>
 <!DOCTYPE html>
@@ -593,9 +593,47 @@ $menuItems = [
         }
 
         @media (max-width: 768px) {
-            .admin-sidebar { display: none; }
+            .admin-sidebar {
+                transform: translateX(-100%);
+                transition: transform .3s cubic-bezier(.4,0,.2,1);
+                box-shadow: none;
+            }
+            .admin-sidebar.open {
+                transform: translateX(0);
+                box-shadow: 8px 0 32px rgba(0,0,0,0.2);
+            }
             .admin-main { margin-left: 0; }
             .stat-grid { grid-template-columns: 1fr 1fr; }
+            .admin-topbar { padding: 0 16px; }
+            .admin-content { padding: 20px 16px; }
+            .admin-sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 99;
+            }
+            .admin-sidebar-backdrop.open { display: block; }
+            .admin-hamburger-btn {
+                display: flex !important;
+            }
+        }
+        .admin-hamburger-btn {
+            display: none;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--text);
+            border-radius: 8px;
+            font-size: 22px;
+            line-height: 1;
+        }
+        .admin-hamburger-btn:hover { background: #f1f5f9; }
+        @media (max-width: 480px) {
+            .stat-grid { grid-template-columns: 1fr; }
+            .page-header h1 { font-size: 20px; }
+            .topbar-user span { display: none; }
         }
     </style>
 </head>
@@ -604,7 +642,7 @@ $menuItems = [
 <!-- SIDEBAR -->
 <aside class="admin-sidebar">
     <div class="sidebar-brand">
-        <div class="sidebar-brand-icon">⚡</div>
+        <div class="sidebar-brand-icon"></div>
         <div class="sidebar-brand-text">
             TechZone
             <span>Admin Panel</span>
@@ -622,23 +660,29 @@ $menuItems = [
         <div class="nav-divider"></div>
 
         <a href="/bainhom/admin/export_orders.php" class="nav-item">
-            <span class="nav-icon">📥</span>
+            <span class="nav-icon"></span>
             Xuất báo cáo CSV
         </a>
     </nav>
 
     <div class="sidebar-footer">
         <a href="/bainhom/index.php" class="nav-item">
-            <span class="nav-icon">🏠</span>
+            <span class="nav-icon"></span>
             Về trang chủ
         </a>
     </div>
 </aside>
 
+<!-- Sidebar Backdrop (mobile) -->
+<div class="admin-sidebar-backdrop" id="admin-sidebar-backdrop"></div>
+
 <!-- MAIN -->
 <div class="admin-main">
     <header class="admin-topbar">
-        <h2 class="topbar-title"><?= htmlspecialchars($pageTitle) ?></h2>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="admin-hamburger-btn" id="admin-hamburger" type="button" aria-label="Toggle menu">☰</button>
+            <h2 class="topbar-title"><?= htmlspecialchars($pageTitle) ?></h2>
+        </div>
         <div class="topbar-right">
             <div class="topbar-user">
                 <div class="topbar-avatar"><?= mb_substr($adminName, 0, 1, 'UTF-8') ?></div>

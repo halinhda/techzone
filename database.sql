@@ -65,10 +65,10 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `name`, `slug`, `icon`) VALUES
-(1, 'Laptop & Máy tính', 'laptop', '💻'),
-(2, 'Điện thoại & Tablet', 'phone', '📱'),
-(3, 'Âm thanh & Loa', 'audio', '🎧'),
-(4, 'Phụ kiện công nghệ', 'accessory', '⌨️');
+(1, 'Laptop & Máy tính', 'laptop', ''),
+(2, 'Điện thoại & Tablet', 'phone', ''),
+(3, 'Âm thanh & Loa', 'audio', ''),
+(4, 'Phụ kiện công nghệ', 'accessory', '');
 
 -- --------------------------------------------------------
 
@@ -87,7 +87,9 @@ CREATE TABLE `orders` (
   `subtotal` decimal(15,0) NOT NULL DEFAULT 0,
   `shipping_fee` decimal(15,0) NOT NULL DEFAULT 0,
   `total_price` decimal(15,0) NOT NULL DEFAULT 0,
-  `payment_method` enum('qr','cod','momo','transfer') NOT NULL DEFAULT 'cod',
+  `payment_method` enum('qr','cod','momo','transfer','credit_card','bank_card') NOT NULL DEFAULT 'cod',
+  `voucher_code` varchar(50) DEFAULT NULL,
+  `discount_amount` decimal(15,0) NOT NULL DEFAULT 0,
   `status` enum('Chờ xử lý','Đang giao','Đã hoàn thành','Đã hủy') NOT NULL DEFAULT 'Chờ xử lý',
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -151,6 +153,7 @@ CREATE TABLE `products` (
   `image_file` varchar(255) DEFAULT NULL,
   `rating` decimal(2,1) NOT NULL DEFAULT 4.5,
   `featured` tinyint(1) NOT NULL DEFAULT 0,
+  `specifications` text DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -200,6 +203,34 @@ CREATE TABLE `reviews` (
 -- --------------------------------------------------------
 
 --
+-- Cấu trúc bảng cho bảng `vouchers`
+--
+
+CREATE TABLE `vouchers` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `code` varchar(50) NOT NULL,
+  `discount_type` enum('fixed','percent') NOT NULL DEFAULT 'fixed',
+  `discount_value` decimal(15,0) NOT NULL,
+  `max_discount` decimal(15,0) DEFAULT NULL,
+  `min_order_value` decimal(15,0) NOT NULL DEFAULT 0,
+  `usage_limit` int(11) NOT NULL DEFAULT 1,
+  `used_count` int(11) NOT NULL DEFAULT 0,
+  `expiry_date` datetime NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `vouchers`
+--
+INSERT INTO `vouchers` (`code`, `discount_type`, `discount_value`, `max_discount`, `min_order_value`, `usage_limit`, `used_count`, `expiry_date`) VALUES
+('TECHZONE50', 'fixed', 50000, NULL, 500000, 100, 0, '2026-12-31 23:59:59'),
+('SALE10', 'percent', 10, 500000, 1000000, 50, 0, '2026-12-31 23:59:59');
+
+-- --------------------------------------------------------
+
+--
 -- Cấu trúc bảng cho bảng `users`
 --
 
@@ -214,7 +245,11 @@ CREATE TABLE `users` (
   `avatar` varchar(255) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `status` tinyint(1) NOT NULL DEFAULT 1
+  `status` tinyint(1) NOT NULL DEFAULT 1,
+  `google_id` varchar(255) DEFAULT NULL,
+  `facebook_id` varchar(255) DEFAULT NULL,
+  `is_guest` tinyint(1) NOT NULL DEFAULT 0,
+  `payment_method` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
